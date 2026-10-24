@@ -28,8 +28,10 @@ export function createInitialState(): AppState {
     input: {
       kind: 'mic',
       deviceId: '',
-      echoCancellation: false,
-      noiseSuppression: false,
+      // 默认开启浏览器回声消除：关闭时麦克风会拾取扬声器输出，
+      // 形成越拖越长的「反复回声」。需要最纯净音质时可手动关掉。
+      echoCancellation: true,
+      noiseSuppression: true,
       autoGainControl: false,
       trimDb: 0,
       testMode: 2,
@@ -44,5 +46,6 @@ export function createInitialState(): AppState {
     metronome: { bpm: 96, beats: 4, volume: 0.6 },
     tunerReference: 440,
     customVoice: null,
+    feedbackGuard: true,
   };
 }

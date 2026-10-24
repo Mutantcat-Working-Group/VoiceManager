@@ -16,6 +16,7 @@
 
 import { registerWorklets, workletsSupported } from './worklets';
 import { TestTone } from './test-tone';
+import { FeedbackGuard, type FeedbackGuardStatus } from './feedback-guard';
 
 export type InputSourceKind = 'mic' | 'tab' | 'test';
 
@@ -77,6 +78,8 @@ export class AudioEngine {
   /** 节拍器等提示音入口，直通主音量但不进录音 */
   readonly clickOut: GainNode;
   readonly testTone: TestTone;
+  /** 反馈抑制器：trim 之后、效果链之前，自动凿掉啸叫的窄带共振 */
+  readonly feedbackGuard: FeedbackGuard;
 
   private trim: GainNode;
   private limiter: DynamicsCompressorNode;
@@ -95,6 +98,7 @@ export class AudioEngine {
   private timeBufOut = new Float32Array(1024);
   private deviceChangeHandler: (() => void) | null = null;
   private streamEndedHandler: (() => void) | null = null;
+  private feedbackGuardStatus: FeedbackGuardStatus = { count: 0, freqs: [] };
 
   constructor() {
     const Ctor: typeof AudioContext =
@@ -124,7 +128,15 @@ export class AudioEngine {
     this.trim.channelCount = 2;
     this.trim.channelCountMode = 'explicit';
 
-    this.trim.connect(this.chainInput);
+    this.feedbackGuard = new FeedbackGuard(this.ctx);
+    this.feedbackGuard.onStatus = (st) => {
+      this.feedbackGuardStatus = st;
+      this.onFeedbackGuard?.(st);
+    };
+    this.feedbackGuard.setAnalysisEnabled(false); // 等 setInput 判定音源类型后再开
+    this.trim.connect(this.feedbackGuard.input);
+    this.feedbackGuard.output.connect(this.chainInput);
+
     this.chainOutput.connect(this.limiter);
     this.limiter.connect(this.master);
     this.limiter.connect(this.recDest);
@@ -157,6 +169,7 @@ export class AudioEngine {
 
   onDevicesChanged: (() => void) | null = null;
   onStreamEnded: (() => void) | null = null;
+  onFeedbackGuard: ((s: FeedbackGuardStatus) => void) | null = null;
 
   /* ------------------------------ 基础能力 ------------------------------ */
 
@@ -170,6 +183,11 @@ export class AudioEngine {
 
   get state(): AudioContextState {
     return this.ctx.state;
+  }
+
+  /** 反馈抑制当前状态（生效中的凹槽数与频率） */
+  get feedbackGuardState(): FeedbackGuardStatus {
+    return this.feedbackGuardStatus;
   }
 
   /** 恢复音频上下文（需在用户手势中调用） */
@@ -199,6 +217,7 @@ export class AudioEngine {
       this.releaseStream();
       this.inputKind = 'test';
       this.testTone.output.connect(this.trim);
+      this.feedbackGuard.setAnalysisEnabled(false);
       return;
     }
 
@@ -232,6 +251,8 @@ export class AudioEngine {
     this.inputKind = opts.kind;
     this.sourceNode = this.ctx.createMediaStreamSource(stream);
     this.sourceNode.connect(this.trim);
+    // 只有麦克风 / 线路输入存在「音箱 → 麦克风」的声学回路，才需要反馈抑制
+    this.feedbackGuard.setAnalysisEnabled(opts.kind === 'mic');
 
     const track = stream.getAudioTracks()[0];
     if (track) {
@@ -264,6 +285,7 @@ export class AudioEngine {
   stopInput(): void {
     this.releaseStream();
     this.inputKind = 'mic';
+    this.feedbackGuard.setAnalysisEnabled(false);
   }
 
   setStreamEndedHandler(fn: (() => void) | null): void {
@@ -385,6 +407,7 @@ export class AudioEngine {
 
   dispose(): void {
     this.releaseStream();
+    this.feedbackGuard.stop();
     this.testTone.dispose();
     if (this.deviceChangeHandler && navigator.mediaDevices?.removeEventListener) {
       navigator.mediaDevices.removeEventListener('devicechange', this.deviceChangeHandler);

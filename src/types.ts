@@ -57,6 +57,8 @@ export interface AppState {
   tunerReference: number;
   /** 变声「自定义」预设快照 */
   customVoice: Record<string, FxParams> | null;
+  /** 反馈抑制（自动凿掉啸叫的窄带共振） */
+  feedbackGuard: boolean;
 }
 
 export const MODE_LIST: { id: ModeId; name: string; code: string; blurb: string }[] = [

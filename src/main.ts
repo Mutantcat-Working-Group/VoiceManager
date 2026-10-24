@@ -41,7 +41,7 @@ import { createMeterBank, createSpectrum } from './ui/meters';
 /* 状态与引擎                                                          */
 /* ------------------------------------------------------------------ */
 
-const store = createStore<AppState>(createInitialState(), 'voicemanager:v1');
+const store = createStore<AppState>(createInitialState(), 'voicemanager:v2');
 const S = () => store.getState();
 
 const engine = new AudioEngine();
@@ -508,22 +508,60 @@ const togglesWrap = el('div');
 togglesWrap.style.display = 'flex';
 togglesWrap.style.flexDirection = 'column';
 togglesWrap.style.gap = '8px';
+// 采集约束只在 getUserMedia 那一刻生效，改完必须重取流
+async function reacquireInput(): Promise<void> {
+  const s = S();
+  if (!s.power || s.input.kind !== 'mic') return;
+  try {
+    await engine.setInput({
+      kind: 'mic',
+      deviceId: s.input.deviceId,
+      echoCancellation: s.input.echoCancellation,
+      noiseSuppression: s.input.noiseSuppression,
+      autoGainControl: s.input.autoGainControl,
+    });
+  } catch (err) {
+    toast(`重新获取麦克风失败：${err instanceof Error ? err.message : String(err)}`, 'error');
+  }
+}
 const ecToggle = createToggle({
-  label: '回声消除（人声建议开）',
+  label: '回声消除（用扬声器放音时务必开启）',
   checked: S().input.echoCancellation,
-  onChange: (c) => store.setState((p) => ({ ...p, input: { ...p.input, echoCancellation: c } })),
+  onChange: (c) => {
+    store.setState((p) => ({ ...p, input: { ...p.input, echoCancellation: c } }));
+    renderFeedbackWarning();
+    void reacquireInput();
+  },
 });
 const nsToggle = createToggle({
-  label: '浏览器降噪（乐器建议关）',
+  label: '浏览器降噪（人声建议开启）',
   checked: S().input.noiseSuppression,
-  onChange: (c) => store.setState((p) => ({ ...p, input: { ...p.input, noiseSuppression: c } })),
+  onChange: (c) => {
+    store.setState((p) => ({ ...p, input: { ...p.input, noiseSuppression: c } }));
+    void reacquireInput();
+  },
 });
 const agcToggle = createToggle({
-  label: '自动增益控制',
+  label: '自动增益控制（建议关闭，会放大啸叫）',
   checked: S().input.autoGainControl,
-  onChange: (c) => store.setState((p) => ({ ...p, input: { ...p.input, autoGainControl: c } })),
+  onChange: (c) => {
+    store.setState((p) => ({ ...p, input: { ...p.input, autoGainControl: c } }));
+    void reacquireInput();
+  },
 });
 togglesWrap.append(ecToggle.el, nsToggle.el, agcToggle.el);
+
+/* 反馈抑制：关掉时给一句明确警示 */
+const fbWarn = el('p', 'panel-hint fb-warning');
+fbWarn.setAttribute('role', 'status');
+function renderFeedbackWarning(): void {
+  const ec = S().input.echoCancellation;
+  fbWarn.textContent = ec
+    ? ''
+    : '⚠ 回声消除已关闭：若用扬声器放音，麦克风会拾取音箱输出，形成越拖越长的回声或啸叫。请改用耳机，或重新打开「回声消除」。';
+  fbWarn.hidden = !ec ? false : true;
+}
+renderFeedbackWarning();
 const testRow = el('div');
 testRow.style.display = 'flex';
 testRow.style.flexDirection = 'column';
@@ -553,7 +591,36 @@ testRow.append(testModeSeg.el, testLevel.el);
 const ioHint = el('p', 'panel-hint');
 ioHint.textContent =
   '耳机线 / USB 声卡：在「输出设备」里选择对应接口即可。若列表中没有，请在系统声音设置里确认设备已被识别。追求最低延迟时，建议在 USB 声卡上做硬件直连监听。';
-ioBody.append(trimKnob.el, togglesWrap, testRow, ioHint);
+const fbToggle = createToggle({
+  label: '反馈抑制（自动凿掉啸叫频率）',
+  checked: S().feedbackGuard,
+  onChange: (c) => {
+    store.setState((p) => ({ ...p, feedbackGuard: c }));
+    if (c) {
+      engine.feedbackGuard.start();
+      engine.feedbackGuard.setAnalysisEnabled(S().input.kind === 'mic');
+    } else {
+      engine.feedbackGuard.stop();
+    }
+    renderGuardStatus(engine.feedbackGuardState);
+  },
+});
+const guardStatus = el('p', 'panel-hint guard-status');
+guardStatus.setAttribute('role', 'status');
+function renderGuardStatus(st: { count: number; freqs: number[] }): void {
+  if (!S().feedbackGuard) {
+    guardStatus.textContent = '已停用';
+  } else if (st.count === 0) {
+    guardStatus.textContent = '监测中 · 暂无啸叫频率';
+  } else {
+    guardStatus.textContent = `已压制 ${st.count} 个频率：${st.freqs
+      .map((f) => `${(f / 1000).toFixed(2)} kHz`)
+      .join(' / ')}`;
+  }
+}
+engine.onFeedbackGuard = (st) => renderGuardStatus(st);
+renderGuardStatus(engine.feedbackGuardState);
+ioBody.append(trimKnob.el, togglesWrap, fbWarn, fbToggle.el, guardStatus, testRow, ioHint);
 ioPanel.body.appendChild(ioBody);
 sidebar.appendChild(ioPanel.el);
 
@@ -569,6 +636,17 @@ helpBody.innerHTML = `
       <li>选择「输出设备」为耳机线或 USB 声卡，戴上耳机监听。</li>
       <li>点击信号链里的模块编辑参数，点灯或右键可旁通该模块。</li>
     </ol>
+  </div>
+  <div>
+    <h4>关于啸叫与回声</h4>
+    <p>扬声器放出的声音被麦克风拾回、再放大输出，就会形成越拖越长的回声，最终变成啸叫。三层防护：</p>
+    <ul>
+      <li><b>戴耳机</b>——最彻底，声音根本不回到麦克风。</li>
+      <li><b>开启「回声消除」</b>——浏览器用扬声器信号做参考，从麦克风里减掉它，效果最好。</li>
+      <li><b>开启「反馈抑制」</b>——持续监测输入频谱，发现又窄又亮又持续的单峰就自动在该频率凿一道浅凹槽；
+        频率消失约 2 秒后凹槽自动恢复，不会在音色上留疤痕。面板里能看到当前压制了哪些频率。</li>
+    </ul>
+    <p>另外建议关闭「自动增益控制」：它会把安静的反馈残余一起放大，更容易起振。</p>
   </div>
   <div>
     <h4>关于噪声门</h4>
@@ -1377,6 +1455,10 @@ function boot(): void {
   renderLoopList();
   renderRecList();
   spectrum.start();
+  if (S().feedbackGuard) {
+    engine.feedbackGuard.start();
+    engine.feedbackGuard.setAnalysisEnabled(S().input.kind === 'mic');
+  }
   requestAnimationFrame(frame);
 
   void refreshDevices();
