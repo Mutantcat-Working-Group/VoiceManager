@@ -1,4 +1,9 @@
 /**
+ * VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
+ * Copyright (C) 2026 Mutantcat Working Group
+ * License: GPL-3.0-or-later <https://www.gnu.org/licenses/>
+ */
+/**
  * 包络跟随 (Envelope Follower) — AudioWorklet
  * 输出音频速率的控制信号 (0..1)，可直接接入 BiquadFilter.frequency 等
  * AudioParam，用于自动哇音 / 动态滤波。

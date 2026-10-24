@@ -1,4 +1,9 @@
 /**
+ * VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
+ * Copyright (C) 2026 Mutantcat Working Group
+ * License: GPL-3.0-or-later <https://www.gnu.org/licenses/>
+ */
+/**
  * 效果器模块契约 (FX contract)
  * ---------------------------------------------------------------------------
  * 所有效果器都实现 FxSpec / FxInstance。引擎只依赖这两个接口，

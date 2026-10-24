@@ -1,4 +1,9 @@
 /**
+ * VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
+ * Copyright (C) 2026 Mutantcat Working Group
+ * License: GPL-3.0-or-later <https://www.gnu.org/licenses/>
+ */
+/**
  * 基础 UI 组件 —— 旋钮 / 推子 / 开关 / 分段 / 下拉 / LED / 面板
  * 全部手写 DOM + SVG，无第三方依赖。
  */

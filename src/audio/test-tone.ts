@@ -1,4 +1,9 @@
 /**
+ * VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
+ * Copyright (C) 2026 Mutantcat Working Group
+ * License: GPL-3.0-or-later <https://www.gnu.org/licenses/>
+ */
+/**
  * 内置测试音源 —— 没有乐器/麦克风时也能试听整条效果链。
  * 模式：正弦 / 粉噪 / 拨弦(Karplus-Strong) / 扫频 / 和弦
  * 全部用原生 Web Audio 节点 + 预生成缓冲实现，不依赖 AudioWorklet。

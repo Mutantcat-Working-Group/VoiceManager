@@ -1,4 +1,9 @@
 /**
+ * VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
+ * Copyright (C) 2026 Mutantcat Working Group
+ * License: GPL-3.0-or-later <https://www.gnu.org/licenses/>
+ */
+/**
  * 音频引擎 —— 设备管理 + 主链路
  * ---------------------------------------------------------------------------
  * 信号流：

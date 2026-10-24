@@ -1,4 +1,9 @@
 /**
+ * VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
+ * Copyright (C) 2026 Mutantcat Working Group
+ * License: GPL-3.0-or-later <https://www.gnu.org/licenses/>
+ */
+/**
  * 比特破碎 (Bit Crusher) — AudioWorklet
  * 降低位深 + 采样率保持，制造 Lo-fi / 8-bit 音色。
  */

@@ -1,4 +1,9 @@
 /**
+ * VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
+ * Copyright (C) 2026 Mutantcat Working Group
+ * License: GPL-3.0-or-later <https://www.gnu.org/licenses/>
+ */
+/**
  * 录音 + 循环录放音 (Loop Station)
  * ---------------------------------------------------------------------------
  * Recorder：用 MediaRecorder 录一段音频，产出带对象 URL 的录音条目。

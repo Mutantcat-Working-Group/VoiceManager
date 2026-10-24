@@ -1,4 +1,9 @@
 /**
+ * VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
+ * Copyright (C) 2026 Mutantcat Working Group
+ * License: GPL-3.0-or-later <https://www.gnu.org/licenses/>
+ */
+/**
  * 节拍器 (Metronome)
  * ---------------------------------------------------------------------------
  * 经典 lookahead 调度：setInterval 每 25ms 醒来一次，把未来 120ms 内的点击

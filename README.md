@@ -139,4 +139,14 @@ src/
 
 ## 许可
 
-MIT
+本项目采用 **GNU General Public License v3.0 或更高版本** 开源，详见 [LICENSE](LICENSE)。
+
+```
+VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
+Copyright (C) 2026 Mutantcat Working Group
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+```

@@ -1,4 +1,9 @@
 /**
+ * VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
+ * Copyright (C) 2026 Mutantcat Working Group
+ * License: GPL-3.0-or-later <https://www.gnu.org/licenses/>
+ */
+/**
  * 变调 (Granular Pitch Shifter) — AudioWorklet
  * ---------------------------------------------------------------------------
  * 双颗粒交叉淡变：环形缓冲 + Hann 窗，两个相距半个颗粒长度的读指针

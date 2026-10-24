@@ -1,4 +1,9 @@
 /**
+ * VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
+ * Copyright (C) 2026 Mutantcat Working Group
+ * License: GPL-3.0-or-later <https://www.gnu.org/licenses/>
+ */
+/**
  * 信号链构建器 —— 按 FxBlockState 顺序实例化并连接效果器。
  * 效果链可随时整体重建（增删、排序），参数变化走 setParam 热更新。
  */
