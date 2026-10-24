@@ -374,7 +374,7 @@ LICENSE                     GNU GPL v3.0
 - **`FAQPage`**：五条真实问答（回声/啸叫成因、噪声门阈值、语言、是否需安装、
   耳机/USB 声卡），答案内容取自帮助面板，有机会进 Google 的富媒体摘要。
 
-### 4. 抓取协议与域名
+### 4. 抓取协议与域名（robots / sitemap / CNAME）
 
 | 文件 | 作用 |
 | --- | --- |
@@ -384,6 +384,28 @@ LICENSE                     GNU GPL v3.0
 
 `public/` 下的文件由 Vite 原样拷到 `dist/` 根，所以 sitemap / robots 里用**绝对
 URL**（sitemap 规范要求）是安全的，不受 `base:'./'` 影响。
+
+### 5. 站长平台接入
+
+站点已在两个平台完成添加与所有权验证：
+
+| 平台 | 资源 | 验证方式 | Sitemap |
+| --- | --- | --- | --- |
+| Bing 站长工具 | `https://voicemanager.mutantcat.org/` | HTML 元标记 | 已提交，1 个网址 |
+| Google Search Console | 网址前缀 `https://voicemanager.mutantcat.org/` | HTML 标记 | 已提交，状态「成功」，发现 1 个网址 |
+
+验证标签在 `index.html` 的 `<head>` 里，**两家都要求验证通过后也不要移除**：
+
+```html
+<meta name="msvalidate.01" content="09EFDE13A2FAD0169413AF8FAFCC323A" />
+<meta name="google-site-verification" content="F2sua3DZBffLnWmEI2XlR7fTfLgCS5BQwAOm5QoxoZs" />
+```
+
+用元标记而不是 DNS TXT / XML 文件，是因为 DNS 不在本项目手里（GitHub Pages 托管，
+自定义域名配置在仓库 settings），而 meta 标签跟着 `index.html` 走，一次部署即生效，
+以后迁主机也一起带走。Google 侧选「网址前缀」而非「网域」，同样因为后者强制 DNS 验证。
+
+新增语言或域名时，需要重新走一遍验证并更新这两个 `content`。
 
 ### 关于 hreflang：这里故意不放
 
