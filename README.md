@@ -1,247 +1,96 @@
-# VoiceManager
+<div align=center>
+<img src="icon.png" style="width:100px;" width="100"/>
+<h2>VoiceManager</h2>
+<p>在线扩音器 · 电吉他 / 贝斯监听与效果器 · 通用效果器架</p>
+</div>
 
-浏览器里的音频工作站：**在线扩音器、电吉他 / 贝斯监听与效果器、通用效果器架**。
-纯前端实现（Vite + TypeScript + Web Audio API），无需安装、无需服务端，打开网页即可用。
+### 一、产品概述
 
-部署：<https://mutantcat-working-group.github.io/VoiceManager/>
+- 浏览器里的音频工作站：麦克风变扩音器、电吉他 / 贝斯监听与效果器、自由搭建的效果器架。
+- 纯前端实现（Vite + TypeScript + Web Audio API + AudioWorklet），无需安装、无需服务端。
+- 21 个效果器、28 个预设，配调音器 / 节拍器 / 循环录音站 / 录音机。
+- 支持耳机线与 USB 声卡监听，音源可用麦克风、标签页音频或内置测试音源。
+- 9 种语言，首次打开按浏览器语言自动选择。
 
----
+线上地址：<https://voicemanager.mutantcat.org/>
 
-## 功能
+核心价值：
 
-### 四种模式
+- 打开网页就能用，不装插件、不下载软件，混响等脉冲响应也是程序化实时生成的。
+- 用扬声器放音的场景专门做了三层防啸叫 / 防回声，配错会实时标红并给一键修复。
+- 效果链可自由编排：任意顺序、任意数量，可以拖到链中间插入。
+- 全部参数与预设存在本地，刷新不丢。
 
-| 模式 | 代码 | 说明 |
+### 二、功能说明
+
+#### 四种模式
+
+| 模式 | 代码 | 链路 |
 | --- | --- | --- |
-| 在线扩音器 | `PA` | 麦克风变扩音器：噪声门 → 均衡 → 压缩 → 变声 → 失真 → 录音 |
-| 电吉他 | `GTR` | 吉他监听与效果器：噪声门 → 自动哇音 → 过载 → 音箱模拟 → 箱体 → 延迟 / 混响 |
-| 贝斯 | `BASS` | 贝斯监听与效果器：压缩 → DI → 法兹 → 箱体 → 均衡 |
-| 效果器架 | `FX` | 自由搭建效果链，任意顺序、任意数量 |
+| 在线扩音器 | `PA` | 噪声门 → 均衡 → 压缩 → 变声 → 失真 → 录音 |
+| 电吉他 | `GTR` | 噪声门 → 自动哇音 → 过载 → 音箱 → 箱体 → 延迟 / 混响 |
+| 贝斯 | `BASS` | 压缩 → DI → 法兹 → 箱体 → 均衡 |
+| 效果器架 | `FX` | 自由搭建，任意顺序、任意数量 |
 
-### 效果器（21 个）
+扩音器模式附带 9 个变声预设；吉他 7 个、贝斯 7 个、效果器架 5 个，共 28 个。
 
-- **动态**：噪声门（AudioWorklet 峰值包络 + 开/保持/关三态机）、压缩、限幅器
-- **均衡 / 滤波**：五段图示均衡、滤波 / 哇音（含自动哇音）
-- **失真 / 音箱**：失真 / 过载（5 种曲线）、激励器、音箱模拟（5 型号）、箱体模拟（5 型号 + IR）
-- **调制**：合唱、移相器、镶边、颤音、环形调制、八度叠加
-- **时间 / 空间**：延迟（含 ping-pong 与速度同步）、混响（程序化 IR）
-- **音高 / 比特**：变调（颗粒移频 worklet）、比特破碎
-- **工具**：音量
+#### 效果器（21 个）
+
+- 动态：噪声门、压缩、限幅器
+- 均衡 / 滤波：五段图示均衡、滤波 / 哇音（含自动哇音）
+- 失真 / 音箱：失真 / 过载（5 种曲线）、激励器、音箱模拟（5 型号）、箱体模拟（5 型号 + IR）
+- 调制：合唱、移相器、镶边、颤音、环形调制、八度叠加
+- 时间 / 空间：延迟（ping-pong 与速度同步）、混响（程序化 IR）
+- 音高 / 比特：变调（颗粒移频 worklet）、比特破碎
+- 工具：音量
 
 每个效果器都有干湿混合（等功率交叉淡变）与旁通，参数实时热更新。
 
-### 工具
+#### 防啸叫 / 防回声
 
-- **调音器**：归一化自相关 + 抛物线插值，A4 基准 415–466 Hz 可调
-- **节拍器**：120 ms 预排窗口，重音 1600 Hz / 普通 1000 Hz，可同步延迟速度
-- **循环录音**：按小节网格录音并自动无缝循环，可无限叠录，各层同相位
-- **录音机**：录制效果链输出（不含节拍器），可试听与下载
-- **电平 / 频谱**：输入输出 VU 表（惯性 + 峰值保持 + clip 指示）、对数频谱
-- **预设**：28 个一键预设（扩音器变声 9 + 吉他 7 + 贝斯 7 + 效果器架 5），扩音器模式另有「自定义」存档位
+扬声器放出的声音被麦克风拾回、再放大输出，就会形成越拖越长的回声，最终啸叫。三层防护：
 
-### 设备枚举（打开网页有时列不出设备）
+1. **戴耳机**——最彻底，声音根本不回到麦克风。
+2. **浏览器回声消除**（默认开）——用扬声器信号做参考，从麦克风输入里减掉它。
+3. **反馈抑制**（默认开）——持续监测输入频谱，只对「又窄、又亮、又持续」的单峰动手，在峰值频率凿一道浅凹槽（Q 22、−10 dB，最多 6 槽），频率消失 2.2 秒后自动恢复，不会在音色上留疤痕。
 
-浏览器在**授权麦克风之前**不会透露设备名称，`enumerateDevices()` 只会返回抹掉 `label` 与 `deviceId`
-的条目，页面上就变成一堆「输入设备 1/2/3」——分不清哪个是自己的 USB 声卡，也选不准。这是浏览器
-的隐私设计，不是页面没加载完。
+另外噪声门是整条链第一级，阈值需 ≤ −30 dB，否则门关不上、什么都切不断。
 
-对应处理：
+「输入与设备」面板顶部有回声防护检查表实时盯着这三层加噪声门，配错就标红、说清原因，多数情况旁边直接给修复按钮。最常见的两种配错：噪声门阈值被拖到 0 dB 以上；混响 / 延迟湿声超过 40%。「自动增益控制」建议保持关闭——它会把安静的反馈残余一起放大，更容易起振。
 
-- 检测到名称被抹掉时，「输入与设备」面板会弹出一条提示和「**授权并刷新设备列表**」按钮，
-  点一次弹出浏览器授权框，之后 `enumerateDevices()` 就能返回真实名称
-- 开机（点电源）本身就会 `getUserMedia`，所以授权成功后会自动刷新一次列表
-- 点开「输入设备 / 输出设备」下拉前也会先刷一次，避免拿到过期列表
-- 权限一旦授予，浏览器会记住，之后打开网页直接带上名称
+#### 音源与设备
 
-另外，`devicechange` 事件在 macOS / Chrome 上并不可靠，插拔常常不触发。所以除事件外还有一条
-**2.5 秒的定时轮询**兜底（后台标签页自动暂停），靠「设备 ID + 名称」签名比对判断是否真的变了：
+- 麦克风 / 线路 / USB 声卡：`getUserMedia`，可选输入设备与回声消除 / 降噪 / 自动增益
+- 标签页 / 系统音频：`getDisplayMedia` 捕获，可直接把在线乐器当音源
+- 内置测试音源：正弦 / 粉噪 / 拨弦 / 扫频 / Am 和弦，无乐器也能验证整条链路
+- 输出路由：优先 `AudioContext.setSinkId()`，回退 `MediaStreamAudioDestinationNode` + `<audio>.setSinkId()`
 
-- 新增设备 → 下拉列表即时出现
-- **已选中的设备被拔掉** → 自动回落到系统默认，并 toast 告知「原输入设备已移除，已切换为系统默认输入」，
-  避免用户以为没声音是坏了
+打开网页有时列不出设备，是浏览器在授权前不透露设备名称的隐私设计，点「授权并刷新设备列表」即可。此外 `devicechange` 在 macOS / Chrome 上不可靠，所以还有 2.5 秒定时轮询兜底：插入新设备会自动出现在下拉里，已选中的设备被拔掉会自动回落系统默认并 toast 告知。
 
-### 音源与设备
-
-- **麦克风 / 线路 / USB 声卡**：`getUserMedia`，可选输入设备、回声消除、降噪、自动增益
-- **标签页 / 系统音频**：`getDisplayMedia` 捕获（video track 置 `enabled=false` 保持共享），可直接把
-  [playvirtualinstruments.com](https://playvirtualinstruments.com/zh/) 等在线乐器当音源
-- **内置测试音源**：正弦 / 粉噪 / Karplus-Strong 拨弦 / 扫频 / Am 和弦，无乐器也能验证整条链路
-- **输出路由**：优先 `AudioContext.setSinkId()`，回退 `MediaStreamAudioDestinationNode` + `<audio>.setSinkId()`
-- **输入微调**：−20…+20 dB，配合噪声门使用
-
-### 防啸叫 / 防回声（三层）
-
-扬声器放出的声音被麦克风拾回、再放大输出，就会形成越拖越长的回声，最终啸叫。由内到外三层防护：
-
-1. **戴耳机** —— 最彻底，声音根本不回到麦克风。
-2. **浏览器回声消除**（默认开启）—— 用扬声器信号做参考，从麦克风输入里减掉它。这是效果最好的一层，
-   在「输入与设备」里可以关闭以换取最纯净的音质。
-3. **反馈抑制**（默认开启）—— 见下。
-
-#### 反馈抑制器
-
-持续监测输入频谱，只对满足「**又窄、又亮、又持续**」三个条件的单峰动手（硬件反馈抑制器同思路）：
-
-- 窄度：峰高出 ±8 bin 局部平均 ≥ 12 dB，且比峰低 8 dB 以内的 bin ≤ 8 个。
-  人声共振峰约 300 Hz 宽（≈ 28 bin）、乐器谐波族更宽，都通不过这道判据。
-- 亮度：峰电平 ≥ −30 dB（FFT bin 电平，比整体 RMS 低约 11 dB）。啸叫会越振越响，门限可以定高。
-- 持续：峰需稳定存在 300 ms 以上，敲击、爆破音等瞬态直接被滤掉。
-
-命中后在峰值频率上串入一个 `peaking` 滤波器（Q 22、−10 dB），最多 6 个槽位；该频率消失 2.2 秒后
-增益缓慢回 0。凹槽刻意做浅、恢复刻意做快——万一误判在持续音上，也只是一道很轻的凹陷，不会出现音色空洞。
-
-「输入与设备」面板里会实时显示当前压制了哪些频率。仅麦克风 / 线路输入参与分析，测试音源与标签页
-数字音频没有声学回路，不参与。
-
-#### 回声防护检查表
-
-三层防护各自独立生效，任何一层配错回声就会回来。所以「输入与设备」面板顶部有一张**回声防护检查表**，
-实时盯着三层，配错就标红、说清原因，多数情况旁边直接给「修复」按钮：
-
-| 检查项 | 判错条件 | 后果 |
-|---|---|---|
-| 浏览器回声消除 | 开关关闭 | 麦克风拾回扬声器输出 |
-| 反馈抑制 | 开关关闭 | 窄带啸叫不会被自动凿掉 |
-| 噪声门 | 旁通 / 阈值 > −30 dB | 门关不上，没有东西能切断持续回声 |
-
-最常见的两种配错：
-
-1. **噪声门阈值被拖到 0 dB 以上** —— 门永远开着，等于没装。人声 / 乐器建议 −45 dB 左右。
-2. **混响 / 延迟湿声开得太大**（> 40%）—— 湿声被扬声器→麦克风拾回，每转一圈尾巴更长，
-   听感就是「一直回声」。建议降到 40% 以下，或改用耳机。
-
-另外「自动增益控制」建议保持关闭：它会把安静的反馈残余一起放大，更容易起振。
-
-### 采集处理预设
-
-浏览器对麦克风的处理程度是一组取舍，两种都合理，所以在「输入与设备」面板做成了两个一键预设：
-
-| 预设 | 回声消除 | 浏览器降噪 | 自动增益 | 适用场景 |
-|---|---|---|---|---|
-| **防啸叫优先**（默认） | 开 | 开 | 关 | 用扬声器放音——扩音器 / 人声 |
-| **音质优先** | 关 | 关 | 关 | 戴耳机弹吉他 / 贝斯，要最原始的输入信号 |
-
-（GuitarStack 就是后者：它为了最纯的吉他音质把 `goog*` 系列全关。）
-切换预设会立即重取输入流；上面三个开关仍可单独微调，改成非预设组合时会显示「当前是自定义组合」。
-
-### 手机 / 平板
-
-窄屏（≤ 640 px）单独一档，不是把桌面版硬缩：
-
-- **触控目标全部 ≥ 44 px**——设备下拉、模式按钮、预设、效果器仓库、图标按钮都逐项调过，
-  实测无一处小于 30 px
-- **三个设备下拉自动排成两列**，不再竖着堆三层占掉半屏
-- **输入框字号 16 px**——低于这个值 iOS 会在聚焦时自动放大整个页面
-- **效果器排序分设备**：桌面端拖着盒子换位置；触摸端 HTML5 拖放不触发，
-  所以效果器盒上会出现 ▲ / ▼ 按钮（`@media (hover: none) and (pointer: coarse)` 也生效，平板同样显示）
-- **链很长时左右滑动**，头部有「← 左右滑动查看整条链 →」提示
-- 旋钮 / 推子走指针事件并设了 `touch-action: none`，触摸拖动顺滑且不连带滚动页面
-- 底部信息条改为单行横向滚动，不换行占地方
-- 留了 `env(safe-area-inset-*)`，iPhone 刘海和 home Indicator 不会压住内容
-- `overflow-x: hidden` 兜底，任何宽度都不会出现整页横向滚动
-
-实测宽度：320 / 360 / 390 / 414 / 640 / 860 / 1100 / 1280 / 1440 / 1920，
-以及横屏 844×390——均无文档级横向溢出。
-
-### 管道编排
-
-信号链是一条可自由编排的管道，增、删、换序、插空都行：
+#### 管道编排
 
 | 操作 | 桌面端 | 手机 / 平板 |
-|---|---|---|
-| **加到队尾** | 点仓库里的效果器 | 同左 |
-| **插到中间** | 从仓库**拖着效果器到链上任意间隙**，落点有竖线指示 | 用仓库顶部「插入位置」（所选前 / 所选后 / 队尾）再点效果器 |
-| **换顺序** | 拖着链上的模块互换位置 | 模块上的 ▲ / ▼ 按钮 |
-| **旁通** | 点模块上的小绿灯 / 右键 / 长按 | 点小绿灯 / **长按模块 0.5 秒** |
-| 删除 / 复制 / 重置 | FX 面板动作条 | 同左 |
-
-- 插入位置选择器会实时提示目标（「将插入到「均衡器」之后」），不会猜
-- 从仓库拖入时用自定义 MIME `application/x-voicemanager-fx` 与「链上既有模块」的拖拽区分开，
-  两者不会互相干扰
-- 插入 / 换序都走同一个状态源（`store.setState → rebuildChain → renderAll`），音频图与界面不会不一致
-
-#### 长按旁通
-
-手机上没法右键，所以改成**长按模块 0.5 秒**切换旁通：按住时有琥珀色高亮反馈，
-触发后抑制随后的 click（否则会变成"选中该模块"），并轻震一下（支持振动的设备）。
-手指一动浏览器会发 `pointercancel`，计时器随之取消，不会和滚动打架。桌面端的右键、
-点绿灯两种方式都保留。
-
-### 交互与无障碍
-
-- 旋钮 / 推子均支持拖拽、滚轮、双击复位；键盘 `↑↓←→` / `Home` / `End` / `PageUp` / `PageDown`，`Shift` 粗调
-- 信号链：**直接拖着效果器模块在链上换位置**，松手即重建音频图并生效
-- 完整 `role="slider"` + `aria-valuenow` / `aria-valuetext`
-- 快捷键：`空格` 电源 · `1`–`4` 模式 · `M` 节拍器 · `R` 录音 · `B` 旁通当前模块
-- 全部参数与预设自动保存在 localStorage
-- 尊重 `prefers-reduced-motion`
-
----
-
-## 多语言
-
-界面支持 **9 种语言**：简体中文（源语言）、English、日本語、Français、Deutsch、Español、
-Português (Brasil)、Русский、한국어。切换入口在右栏「输入与设备」面板顶部的语言选择器。
-
-### 首次打开怎么选
-
-按浏览器语言自动挑，优先级如下：
-
-1. `localStorage['voicemanager:locale']` —— 你上次手动选过的，优先
-2. `navigator.languages` 逐个匹配（精确 → 主语言 → 方言回退）
-3. 都不中就简体中文
-
-方言回退规则：`zh-TW` / `zh-HK` / `zh-MO` → 简体中文，`pt` / `pt-PT` → Português (Brasil。
-首次检测**不会**写入 localStorage，所以之后改浏览器语言、下次打开仍然生效。
-
-### 实现方式：「中文即键」
-
-词典的键就是简体中文原文（`Record<string, string>`），运行时 `t(key)` 查不到就原样返回 key。
-这样有两个好处：
-
-- 不用给几百条文案编一套 ID，改动最小；
-- 简体中文永远完整可用，缺译时优雅退化为中文原文，而不是把 `fx.delay.label` 这种键名显示给用户。
-
-插值用 `{name}` 占位符；内联标签也可以进译文，让译文按自己的语序摆放：
-
-| 占位符 | 展开成 | 说明 |
 | --- | --- | --- |
-| `{n0}` `{n1}` … | 传入的参数值 | 数据占位符，按出现顺序编号 |
-| `{b}` `{/b}` | `<b>` `</b>` | 粗体 |
-| `{k1}` `{k2}` … | `<span class="kbd">` | 键帽（快捷键说明里用） |
+| 加到队尾 | 点仓库里的效果器 | 同左 |
+| 插到中间 | 从仓库拖着效果器到链上任意间隙，落点有竖线指示 | 仓库顶部选「插入位置」再点效果器 |
+| 换顺序 | 拖着链上的模块互换位置 | 模块上的 ▲ / ▼ 按钮 |
+| 旁通 | 点小绿灯 / 右键 / 长按 | 点小绿灯 / 长按 0.5 秒 |
 
-### 切语言后哪些会跟着变
+插入位置选择器会实时提示目标；从仓库拖入用自定义 MIME `application/x-voicemanager-fx` 与「链上既有模块」的拖拽区分；插入 / 换序都走同一个状态源，音频图与界面不会不一致。
 
-- **静态文案**（`title` / `aria-label` / 叶子节点文本）：界面挂载后 `captureStaticText()` 抓一份原文，
-  切语言时 `retranslateStaticText()` 按原文重译。只重译「自上次以来没被动态改过」的节点，
-  所以状态行、表头读数这些被 render 函数接管的不会被覆盖回静态文案。
-- **动态文案**（效果器名 / 参数名 / 预设名 / 状态栏 / 帮助面板）：走 `renderAll()` 里的 `t()`。
-- **效果器与预设数据**：`FxSpec` / `ChainPreset` 是模块级常量，定义处包 `t()` 会被冻住，
-  所以在**使用点**过一层访问器 —— `fxName` / `fxBlurb` / `fxParamLabel` / `fxParamHelp` /
-  `fxOptionLabel` / `fxParamFormat` / `fxCategoryLabel` / `presetName` / `presetBlurb`（见 `src/i18n/fx.ts`）。
-- **`<html lang>`**：随语言同步，屏幕阅读器和浏览器翻译都会跟着走。
+#### 手机 / 平板
 
-### 增补翻译
+窄屏（≤ 640 px）单独一档，不是把桌面版硬缩：触控目标全部 ≥ 44 px、三个设备下拉排成两列、输入框字号 16 px（避免 iOS 聚焦时放大页面）、链很长时左右滑动、旋钮走指针事件并设 `touch-action: none`、留 `env(safe-area-inset-*)`、`overflow-x: hidden` 兜底。实测 320 至 1920 及横屏 844×390 均无文档级横向溢出。
 
-翻译数据在 `tools/i18n/.data*.py`，每行一条 `(中文键, en, ja, fr, de, es, pt-BR, ru, ko)`。
-改完跑 `python3 tools/i18n/gen.py` 重新生成 `src/i18n/locales/*.ts` 八个词典。
+#### 多语言
 
-```
-tools/i18n/
-  .data1.py … .data7.py    翻译数据（中文键 + 8 语言译文）
-  gen.py                   数据 → src/i18n/locales/*.ts
-  wrap.py                  把源码里的中文字面量包成 t('…') 的一次性脚本
-src/i18n/
-  index.ts                 核心：t() / getLocale() / setLocale() / matchLocale() / detectLocale()
-  fx.ts                    效果器与预设的取用点访问器
-  dom.ts                   静态文案抓取与重译
-  locales/                 8 个词典
-```
+9 种语言：简体中文（源语言）、English、日本語、Français、Deutsch、Español、Português (Brasil)、Русский、한국어。切换入口在右栏「输入与设备」面板顶部。
 
+首次打开按浏览器语言自动挑，优先级：`localStorage` 里上次手动选过的 → `navigator.languages` 逐个匹配（精确 → 主语言 → 方言回退）→ 简体中文。首次检测不写入 localStorage，之后改浏览器语言下次打开仍生效。
 
----
+实现方式是「中文即键」：词典键就是简体中文原文，`t(key)` 查不到就原样返回 key，缺译时优雅退化为中文而不是把键名显示给用户。效果器与预设是模块级常量，定义处包 `t()` 会被冻住，所以在使用点过一层访问器（`fxName` / `fxBlurb` / `presetName` 等，见 `src/i18n/fx.ts`）。翻译数据在 `tools/i18n/.data*.py`，改完跑 `python3 tools/i18n/gen.py` 重新生成 8 个词典。
 
-## 快速开始
+### 三、快速上手
 
 ```bash
 npm install
@@ -252,13 +101,26 @@ npm run preview    # 预览生产构建
 
 打开页面 → 点左上角 **电源** → 允许麦克风权限 → 戴上耳机监听。
 
-> **戴耳机使用**，避免麦克风正对扬声器产生啸叫。
+> 用扬声器放音时务必戴耳机，或按上面的回声防护检查表把四层配好。
 
----
+### 四、部署
 
-## 噪声门怎么调
+push 到 `main` 即由 GitHub Actions 构建并发布到 GitHub Pages，自定义域名 `voicemanager.mutantcat.org`。
 
-噪声门是整条链的第一级，用来消除无信号时的底噪、电流声与环境噪声。
+```bash
+npm run build      # 产物在 dist/
+git push origin main
+```
+
+- `vite.config.ts` 里 `base:'./'` 用相对路径，兼容自定义域名与项目页
+- 自定义域名写在 `public/CNAME`，跟随版本控制，不依赖仓库设置
+- `public/robots.txt`、`public/sitemap.xml` 由 Vite 原样拷到 `dist/` 根
+- AudioWorklet 需 `worker.format:'iife'`（classic script，兼容性最好）
+- sitemap 的 `<lastmod>` 由流水线按构建日期自动盖章
+
+### 五、参数建议
+
+噪声门是整条链第一级，用来消除无信号时的底噪、电流声与环境噪声。
 
 | 参数 | 建议值 | 说明 |
 | --- | --- | --- |
@@ -269,13 +131,13 @@ npm run preview    # 预览生产构建
 | 衰减深度 | −110 dB（静音）…−60 dB（保留呼吸感） | 关门后压到多低 |
 | 回差 | 3–5 dB | 防止门在阈值附近反复开合 |
 
----
+采集处理做成了两档一键预设：「防啸叫优先」（默认，回声消除 + 降噪开、自动增益关）与「音质优先」（全关，戴耳机弹吉他 / 贝斯时用）。上面三个开关仍可单独微调。
 
-## 项目结构
+### 六、项目结构
 
 ```
 index.html                  入口 HTML（lang 由 initI18n 同步）
-vite.config.ts              base:'./'（GitHub Pages 相对路径）+ worker iife
+vite.config.ts              base:'./' + worker iife
 src/
   main.ts                   主编排：状态 → 引擎 → 视图
   types.ts                  ModeId / FxBlockState / AppState
@@ -295,161 +157,69 @@ src/
   i18n/                     多语言：核心 / 访问器 / 静态文案重译 / 8 个词典
   styles/                   设计令牌 + 控件 + 布局
 .github/workflows/deploy.yml  push main → GitHub Pages
-tools/i18n/                翻译数据 + 词典生成脚本
-tools/og/                  社交分享图（og-cover.png）生成脚本
-icon.png                    应用图标（favicon + apple-touch-icon）
-public/                    robots.txt / sitemap.xml / CNAME / manifest / og-cover.png
+public/                     robots.txt / sitemap.xml / CNAME / manifest / og-cover.png
+tools/i18n/                 翻译数据 + 词典生成脚本
+tools/og/                   社交分享图生成脚本
+icon.png                    应用图标
 LICENSE                     GNU GPL v3.0
 ```
 
-### 界面分区
+界面分两栏：左栏「机架」（模式说明 → 电平 / 频谱 → 效果器参数 → 预设 → 效果器仓库），右栏「工具」（调音器 → 节拍器 → 循环录音 → 录音机 → 输入与设备 → 使用说明）。窄屏（≤ 1100 px）自动收成单栏。
 
-左栏是「机架」：模式说明 → 电平 / 频谱 → 当前效果器参数 → 预设 → 效果器仓库。
-右栏是「工具」：调音器 → 节拍器 → 循环录音 → 录音机 → 输入与设备（顶部是**语言选择**）→ 使用说明。
-两栏高度经过配平，宽屏下不会出现一侧空一大块的情况；窄屏（≤1100px）自动收成单栏，
-侧栏改为自适应网格。
-```
+### 七、技术要点
 
----
+- AudioWorklet：Vite `?worker&url` 导入 + `worker.format:'iife'`，`addModule()` 幂等注册，不可用时自动降级为普通节点
+- 程序化 IR：RBJ cookbook 双二阶 + mulberry32 确定性 PRNG，无外部音频文件
+- 干湿混合：等功率交叉淡变 `cos(x·π/2)` / `sin(x·π/2)`；`wet` 总线只由效果器输出馈入，避免绕过效果器的干信号通路
+- 旁通与重建：所有断开都做安全包装，重建链路时 `inNode` / `outNode` 双侧断开，旧链路不会并联残留
+- 调音器：归一化自相关 + 抛物线插值，A4 基准 415–466 Hz 可调
+- 无障碍：完整 `role="slider"` + `aria-valuenow` / `aria-valuetext`，键盘可操作，尊重 `prefers-reduced-motion`
+- 快捷键：`空格` 电源 · `1`–`4` 模式 · `M` 节拍器 · `R` 录音 · `B` 旁通当前模块
 
-## 技术要点
+浏览器兼容：基础音频链 Chrome / Edge 66+、Firefox 76+、Safari 14.1+；输出设备选择需 Chrome 110+（`setSinkId`），其余保持系统默认输出；标签页音频捕获需 `getDisplayMedia`（Chrome / Edge）。
 
-- **AudioWorklet**：Vite `?worker&url` 导入 + `worker.format:'iife'`（classic script，兼容性最好），
-  `ctx.audioWorklet.addModule(url)` 幂等注册
-- **程序化 IR**：RBJ cookbook 双二阶 + mulberry32 确定性 PRNG，无外部音频文件
-- **干湿混合**：等功率交叉淡变 `cos(x·π/2)` / `sin(x·π/2)`；`wet` 总线只由效果器输出馈入，
-  避免出现绕过效果器的干信号通路
-- **旁通**：`input.disconnect(内部) → input.connect(output)`，所有断开都做安全包装
-- **重建链路**：整体 dispose 后重建，`inNode` / `outNode` 双侧断开，旧链路不会并联残留
+### 八、SEO
 
-## 浏览器兼容
+单页应用 + 客户端渲染，核心难点是爬虫拿到的 HTML 里没有正文。分五层处理：
 
-| 特性 | 要求 |
-| --- | --- |
-| 基础音频链 | Chrome / Edge 66+、Firefox 76+、Safari 14.1+ |
-| AudioWorklet | Chrome 66+、Firefox 76+、Safari 14.1+（不可用时自动降级为普通节点） |
-| 输出设备选择 | Chrome 110+（`setSinkId`），其余浏览器保持系统默认输出 |
-| 标签页音频捕获 | Chrome / Edge（`getDisplayMedia`） |
-| 录音 | 支持 `MediaRecorder` 的浏览器 |
-
----
-
-## SEO
-
-单页应用 + 客户端渲染，SEO 的核心难点是「爬虫拿到的 HTML 里没有正文」。
-这个项目的做法分四层。
-
-### 1. 可抓取的兜底正文（`<noscript>`）
-
-整个界面是 JS 生成的 DOM，不执行 JS 的爬虫（含多数社交预览抓取器）打开页面
-只能看到一个空 `<div id="app">`。所以在 `<body>` 末尾放了一份**语义化、与界面功能
-一一对应**的 `<noscript>` 内容：`<header>` / `<main>` / `<section>` / `<footer>`，
-含 `h1`、八个 `h2`、模式清单、21 个效果器清单、工具、防啸叫、噪声门调法、
-音源与设备、多语言、快捷键。约 1800 字正文，配 `src/styles/layout.css` 里的
-`noscript { … }` 样式（限宽 860px、琥珀色标题、键帽样式），禁用 JS 的访问者
-看到的也是一个像样的页面而不是裸文本。
-
-> 这份内容不是给搜索引擎堆砌的关键词——它就是「关掉 JS 后这个应用能干什么」的说明。
-
-### 2. Meta 与社交卡片
-
-| 类别 | 内容 |
-| --- | --- |
-| 基础 | `title` / `description` / `keywords` / `robots`（`max-image-preview:large`）/ `canonical` / `author` / `license` |
-| Open Graph | `og:type` `og:url` `og:title` `og:description` `og:image`（含 `width`/`height`/`alt`）/ `og:site_name` / `og:locale` + 8 个 `og:locale:alternate` |
-| Twitter | `twitter:card=summary_large_image` + `title` / `description` / `image` / `image:alt` |
-| PWA | `manifest.webmanifest`、`apple-mobile-web-app-*`、`msapplication-TileColor`、`color-scheme=dark` |
-
-`og-cover.png` 是 1200×630 的分享图，由 `tools/og/make_cover.py` 生成——
-配色与文案直接取自 `src/styles/tokens.css` 和页面 `<title>`，避免分享图和落地页
-说的是两件事。
-
-### 3. 结构化数据（JSON-LD）
-
-两段，都在 `index.html` 里：
-
-- **`WebApplication`**：`featureList` 列全功能、`inLanguage` / `availableLanguage`
-  列 9 种语言、`browserRequirements` 说明依赖 Web Audio API、`offers` 标免费、
-  `license` 指向 GPL-3.0、`screenshot` 指向分享图。
-- **`FAQPage`**：五条真实问答（回声/啸叫成因、噪声门阈值、语言、是否需安装、
-  耳机/USB 声卡），答案内容取自帮助面板，有机会进 Google 的富媒体摘要。
-
-### 4. 抓取协议与域名（robots / sitemap / CNAME）
-
-| 文件 | 作用 |
-| --- | --- |
-| `public/robots.txt` | 放行全部，指向 sitemap。**不屏蔽 `/assets/`** —— 那里的 JS / CSS 是渲染页面本身必需的，屏蔽掉爬虫拿到的是一份没有样式的空壳 |
-| `public/sitemap.xml` | 单页应用只有一个可索引 URL，`<lastmod>` 发布时手动更新 |
-| `public/CNAME` | 把自定义域名 `voicemanager.mutantcat.org` 纳入版本控制，不至于仓库设置一丢站点就回落到 `*.github.io` |
-
-`public/` 下的文件由 Vite 原样拷到 `dist/` 根，所以 sitemap / robots 里用**绝对
-URL**（sitemap 规范要求）是安全的，不受 `base:'./'` 影响。
-
-### 5. 站长平台接入
-
-站点已在两个平台完成添加与所有权验证：
-
-| 平台 | 资源 | 验证方式 | Sitemap |
-| --- | --- | --- | --- |
-| Bing 站长工具 | `https://voicemanager.mutantcat.org/` | HTML 元标记 | 已提交，1 个网址 |
-| Google Search Console | 网址前缀 `https://voicemanager.mutantcat.org/` | HTML 标记 | 已提交，状态「成功」，发现 1 个网址 |
-
-验证标签在 `index.html` 的 `<head>` 里，**两家都要求验证通过后也不要移除**：
+1. **可抓取的兜底正文**——`<body>` 末尾的 `<noscript>` 放了一份语义化内容（`header` / `main` / `section` / `footer`，`h1` + 八个 `h2`），约 1800 字，覆盖模式、效果器、工具、防啸叫、噪声门调法、多语言、快捷键。配 `layout.css` 里的 `noscript` 样式，禁 JS 的访问者看到的也是像样的页面。这份内容不是关键词堆砌，就是「关掉 JS 后这个应用能干什么」。
+2. **Meta 与社交卡片**——`description` / `keywords` / `robots` / `canonical` / `license`，Open Graph 20 处（`og:image` 带尺寸与 alt），Twitter `summary_large_image`，PWA manifest。`public/og-cover.png` 由 `tools/og/make_cover.py` 生成，配色取自 `tokens.css`、文案取自页面 `<title>`。
+3. **结构化数据**——`WebApplication`（featureList / inLanguage / offers / license / screenshot）+ `FAQPage`（五条真实问答，答案取自帮助面板）。
+4. **抓取协议**——`public/robots.txt` 放行全部并指向 sitemap，**不屏蔽 `/assets/`**（那里的 JS / CSS 是渲染页面本身必需的）；`public/sitemap.xml` 单页应用只有一个可索引 URL；`public/CNAME` 把自定义域名纳入版本控制。
+5. **站长平台**——Bing 与 Google Search Console 均已添加并完成所有权验证，sitemap 已提交。验证标签在 `index.html` 的 `<head>`：
 
 ```html
 <meta name="msvalidate.01" content="09EFDE13A2FAD0169413AF8FAFCC323A" />
 <meta name="google-site-verification" content="F2sua3DZBffLnWmEI2XlR7fTfLgCS5BQwAOm5QoxoZs" />
 ```
 
-用元标记而不是 DNS TXT / XML 文件，是因为 DNS 不在本项目手里（GitHub Pages 托管，
-自定义域名配置在仓库 settings），而 meta 标签跟着 `index.html` 走，一次部署即生效，
-以后迁主机也一起带走。Google 侧选「网址前缀」而非「网域」，同样因为后者强制 DNS 验证。
+两家都要求验证通过后也不要移除这两行，否则资源会重新变成未验证状态。
 
-新增语言或域名时，需要重新走一遍验证并更新这两个 `content`。
+用元标记而不是 DNS TXT / XML 文件，是因为 DNS 不在本项目手里，而 meta 标签跟着 `index.html` 走，一次部署即生效、迁主机可带走。
 
-### 关于 hreflang：这里故意不放
+关于 hreflang：本项目 9 种语言但语言不体现在 URL 上（运行时按浏览器语言切换，共用同一地址），而 hreflang 的硬性前提是每种语言有独立 URL，九个语言指向同一个 URL 会被判重复内容。所以故意不放，改用 `og:locale:alternate` 与 JSON-LD 的 `inLanguage` / `availableLanguage` 表达。
 
-本项目有 9 种语言，但**语言不体现在 URL 上**——靠 `localStorage` +
-`navigator.languages` 运行时探测，所有语言共用同一个地址。而 hreflang 的硬性
-前提是「每种语言必须有独立 URL」，九个语言都指向同一个 URL 会被判定为重复内容，
-反而有害。所以改用 `og:locale` / `og:locale:alternate` 和 JSON-LD 的
-`inLanguage` / `availableLanguage` 来表达多语言；`<html lang>` 由 `initI18n()`
-在启动时同步，屏幕阅读器和浏览器翻译会跟着走。
+### 九、开发进度
 
-将来若要做按 URL 分语言（`/en/`、`/ja/`…），届时再补 hreflang 才是正确的。
+- [X] 四种模式（扩音器 / 电吉他 / 贝斯 / 效果器架）
+- [X] 21 个效果器 + 干湿混合与旁通
+- [X] 28 个预设
+- [X] 噪声门（AudioWorklet 峰值包络 + 开 / 保持 / 关三态机）
+- [X] 三层防啸叫 / 防回声 + 回声防护检查表
+- [X] 调音器 / 节拍器 / 循环录音站 / 录音机
+- [X] 音源三态（麦克风 / 标签页音频 / 内置测试音源）
+- [X] 输出设备选择（耳机线 / USB 声卡）+ 设备轮询兜底
+- [X] 管道编排：拖动换序、插入中间、长按旁通
+- [X] 手机 / 平板适配（三档断点 + 触控目标 ≥ 44 px）
+- [X] 9 种语言 + 按浏览器语言自动选择
+- [X] SEO：可抓取正文 / meta / JSON-LD / 抓取协议 / 站长平台验证
+- [X] GitHub Pages 部署 + 自定义域名
 
-### 本地验证
-
-```bash
-npm run build
-npx vite preview --port 4174
-curl -s localhost:4174/robots.txt
-curl -s localhost:4174/sitemap.xml
-```
-
-禁 JS 看兜底页（这份正是不执行 JS 的爬虫看到的内容）：
-
-```js
-const { chromium } = require('playwright');
-const b = await chromium.launch();
-const p = await b.newPage({ javaScriptEnabled: false });
-await p.goto('http://localhost:4174/');
-await p.screenshot({ path: 'noscript.png', fullPage: true });
-```
-
-
----
-
-## 许可
+### 十、许可
 
 本项目采用 **GNU General Public License v3.0 或更高版本** 开源，详见 [LICENSE](LICENSE)。
 
 ```
 VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
 Copyright (C) 2026 Mutantcat Working Group
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
 ```
