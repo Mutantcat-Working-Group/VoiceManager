@@ -273,11 +273,27 @@ const resetBtn = el('button', 'btn', { type: 'button', title: '恢复该效果�
 resetBtn.textContent = '重置';
 fxActions.append(bypassBtn.el, moveUpBtn, moveDownBtn, dupBtn, delBtn, resetBtn);
 
+/* 电平 + 频谱：紧跟信号链路，监测当前这条链的输入输出 */
+const meterPanel = createPanel({ title: '电平 / 频谱', code: 'MTR' });
+const meterBank = createMeterBank();
+const spectrum = createSpectrum(() => engine.analyserOut);
+meterPanel.body.append(meterBank.el, spectrum.el);
+workarea.append(hero, meterPanel.el);
+
 const fxPanel = createPanel({ title: '效果器', code: 'FX', actions: [fxActions] });
-workarea.append(hero, fxPanel.el);
+workarea.appendChild(fxPanel.el);
+
+/* 预设：与信号链路相邻，改完参数就能整组试听 */
+const presetPanel = createPanel({ title: '预设', code: 'PRE' });
+const presetGrid = el('div', 'preset-grid');
+presetPanel.body.appendChild(presetGrid);
+const presetHint = el('p', 'panel-hint');
+presetHint.style.marginTop = '8px';
+presetPanel.body.appendChild(presetHint);
+workarea.appendChild(presetPanel.el);
 
 /* 效果器仓库 */
-const library = createPanel({ title: '效果器仓库', code: 'LIB', collapsible: true, startCollapsed: true });
+const library = createPanel({ title: '效果器仓库', code: 'LIB', collapsible: true, startCollapsed: false });
 const libBody = library.body;
 const libGroups = el('div', 'fx-library');
 for (const cat of FX_CATEGORY_ORDER) {
@@ -308,22 +324,6 @@ workarea.appendChild(library.el);
 /* ------------------------------------------------------------------ */
 
 const sidebar = el('aside', 'sidebar', { 'aria-label': '工具面板' });
-
-/* 电平 + 频谱 */
-const meterPanel = createPanel({ title: '电平 / 频谱', code: 'MTR' });
-const meterBank = createMeterBank();
-const spectrum = createSpectrum(() => engine.analyserOut);
-meterPanel.body.append(meterBank.el, spectrum.el);
-sidebar.appendChild(meterPanel.el);
-
-/* 预设 */
-const presetPanel = createPanel({ title: '预设', code: 'PRE' });
-const presetGrid = el('div', 'preset-grid');
-presetPanel.body.appendChild(presetGrid);
-const presetHint = el('p', 'panel-hint');
-presetHint.style.marginTop = '8px';
-presetPanel.body.appendChild(presetHint);
-sidebar.appendChild(presetPanel.el);
 
 /* 调音器 */
 const tunerPanel = createPanel({ title: '调音器', code: 'TUNE' });

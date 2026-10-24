@@ -111,6 +111,16 @@ src/
   ui/                       DOM 组件（旋钮 / 推子 / 开关 / 分段 / 面板 / 链条 / 表头）
   styles/                   设计令牌 + 控件 + 布局
 .github/workflows/deploy.yml  push main → GitHub Pages
+icon.png                    应用图标（favicon + apple-touch-icon）
+LICENSE                     GNU GPL v3.0
+```
+
+### 界面分区
+
+左栏是「机架」：模式说明 → 电平 / 频谱 → 当前效果器参数 → 预设 → 效果器仓库。
+右栏是「工具」：调音器 → 节拍器 → 循环录音 → 录音机 → 输入与设备 → 使用说明。
+两栏高度经过配平，宽屏下不会出现一侧空一大块的情况；窄屏（≤1100px）自动收成单栏，
+侧栏改为自适应网格。
 ```
 
 ---
