@@ -1477,8 +1477,10 @@
     padding: 8px 10px;
   }
 
-  /* 手机上语言下拉贴品牌左缘，别跟主音量挤在一起 */
-  .lang-cluster .select {
+  /* 手机上语言下拉贴品牌左缘，别跟主音量挤在一起。
+     宽度设在 .select-box 上而不是 label——盒子才是真正包着 <select> 的那层，
+     select 会撑满它（见 controls.css 的 inline-grid），label 设了也白设。 */
+  .lang-cluster .select-box {
     min-width: 108px;
   }
 
@@ -1766,7 +1768,7 @@
   align-items: center;
 }
 
-.lang-cluster .select {
+.lang-cluster .select-box {
   min-width: 116px;
 }
 

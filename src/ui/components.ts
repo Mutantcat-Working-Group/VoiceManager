@@ -536,6 +536,8 @@ export interface SelectHandle {
 
 export function createSelect(o: SelectOptions): SelectHandle {
   const root = el('label', 'select');
+  // 紧包 <select> 的一层：下拉箭头相对它定位，label 被外部拉宽时箭头不会跑出框外
+  const box = el('span', 'select-box');
   const select = el('select');
   if (o.label) {
     select.setAttribute('aria-label', o.label);
@@ -574,7 +576,8 @@ export function createSelect(o: SelectOptions): SelectHandle {
   render();
   select.value = o.value;
   select.addEventListener('change', () => o.onChange?.(select.value));
-  root.appendChild(select);
+  box.appendChild(select);
+  root.appendChild(box);
 
   return {
     el: root,

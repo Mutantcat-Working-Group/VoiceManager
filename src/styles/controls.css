@@ -295,10 +295,28 @@
 
 /* --------------------------------- 下拉 --------------------------------- */
 
+/*
+ * .select 是 label，宽度由外部决定（min-width、被 flex/grid 父级拉伸），
+ * 里面的 <select> 却按内容撑开，两者经常不一样宽。下拉箭头如果相对 label
+ * 定位，就会掉到 select 右边界外面去——语言下拉和循环长度下拉都中过这招。
+ * 所以加一层 .select-box 紧包 <select>，箭头改相对它定位，两边永远等宽。
+ */
 .select {
   position: relative;
   display: inline-flex;
   align-items: center;
+}
+
+/*
+ * inline-grid 而不是 inline-flex：网格项默认 justify-items: stretch，
+ * <select> 会撑满整个盒子。这样「给盒子设 min-width」和「select 实际宽度」
+ * 始终一致，不会出现盒子比select宽、箭头却按盒子定位的错位。
+ */
+.select-box {
+  position: relative;
+  display: inline-grid;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .select select {
@@ -314,7 +332,7 @@
   text-overflow: ellipsis;
 }
 
-.select::after {
+.select-box::after {
   content: '';
   position: absolute;
   right: 9px;
