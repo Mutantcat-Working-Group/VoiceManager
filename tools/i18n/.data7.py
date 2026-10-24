@@ -325,13 +325,13 @@ ROWS += [
 ]
 
 ROWS += [
-    ('界面语言：机头铭牌最右侧的下拉框可以切换 9 种语言，首次打开会按浏览器语言自动选择。',
-     'Interface language: switch between 9 languages from the dropdown at the far right of the front nameplate; your browser language is used on first open.',
-     '表示言語：前面銘板の右端にあるドロップダウンで 9 言語を切り替えられます。初回はブラウザ言語から自動選択されます。',
-     'Langue de l’interface : choisissez parmi 9 langues dans le menu déroulant à l’extrémité droite de la plaque frontale ; la langue du navigateur est utilisée au premier lancement.',
-     'Oberflächensprache: im Dropdown ganz rechts am Frontpanel zwischen 9 Sprachen wechseln; beim ersten Öffnen wird die Browsersprache verwendet.',
-     'Idioma de la interfaz: cambia entre 9 idiomas desde el menú desplegable del extremo derecho del panel frontal; la primera vez se usa el idioma del navegador.',
-     'Idioma da interface: alterne entre 9 idiomas no menu suspenso na extremidade direita da placa frontal; na primeira abertura é usado o idioma do navegador.',
-     'Язык интерфейса: 9 языков переключаются в раскрывающемся списке в крайней правой части лицевой панели; при первом открытии берётся язык браузера.',
-     '인터페이스 언어: 전면 명판의 가장 오른쪽에 있는 드롭다운에서 9개 언어를 전환할 수 있으며, 처음 열 때는 브라우저 언어가 사용됩니다.'),
+    ('界面语言：左上角品牌区的下拉框可以切换 9 种语言，首次打开会按浏览器语言自动选择。',
+     'Interface language: switch between 9 languages from the dropdown in the branding block at the top left; your browser language is used on first open.',
+     '表示言語：左上のブランド領域にあるドロップダウンで 9 言語を切り替えられます。初回はブラウザ言語から自動選択されます。',
+     'Langue de l’interface : choisissez parmi 9 langues dans le menu déroulant du bloc de marque en haut à gauche ; la langue du navigateur est utilisée au premier lancement.',
+     'Oberflächensprache: im Dropdown im Markenblock oben links zwischen 9 Sprachen wechseln; beim ersten Öffnen wird die Browsersprache verwendet.',
+     'Idioma de la interfaz: cambia entre 9 idiomas desde el menú desplegable del bloque de marca de la parte superior izquierda; la primera vez se usa el idioma del navegador.',
+     'Idioma da interface: alterne entre 9 idiomas no menu suspenso do bloco da marca no canto superior esquerdo; na primeira abertura é usado o idioma do navegador.',
+     'Язык интерфейса: 9 языков переключаются в раскрывающемся списке в блоке бренда в левом верхнем углу; при первом открытии берётся язык браузера.',
+     '인터페이스 언어: 왼쪽 상단 브랜드 영역의 드롭다운에서 9개 언어를 전환할 수 있으며, 처음 열 때는 브라우저 언어가 사용됩니다.'),
 ]

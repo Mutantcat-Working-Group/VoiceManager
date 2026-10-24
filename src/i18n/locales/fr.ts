@@ -490,5 +490,5 @@ export const fr: Dict = {
   '语言': 'Langue',
   '首次打开时按浏览器语言自动选择；切换后会被记住。当前浏览器语言：{n0}': 'Choisie automatiquement d’après la langue du navigateur au premier lancement ; votre choix est mémorisé. Langue actuelle du navigateur : {n0}',
   '输出补偿': 'Gain de sortie',
-  '界面语言：机头铭牌最右侧的下拉框可以切换 9 种语言，首次打开会按浏览器语言自动选择。': 'Langue de l’interface : choisissez parmi 9 langues dans le menu déroulant à l’extrémité droite de la plaque frontale ; la langue du navigateur est utilisée au premier lancement.',
+  '界面语言：左上角品牌区的下拉框可以切换 9 种语言，首次打开会按浏览器语言自动选择。': 'Langue de l’interface : choisissez parmi 9 langues dans le menu déroulant du bloc de marque en haut à gauche ; la langue du navigateur est utilisée au premier lancement.',
 };

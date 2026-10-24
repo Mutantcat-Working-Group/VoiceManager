@@ -197,10 +197,10 @@ statusStrip.append(chipPower, chipSr, chipLatency, chipEngine);
 ioCluster.append(kindSelect.el, inputDeviceSelect.el, outputDeviceSelect.el, statusStrip);
 
 /*
- * 语言选择放在机头铭牌最右侧，与「输入与设备」面板解耦——语言是全局偏好，
- * 不是 I/O 设置，埋在设备面板里既难找也和旁边那些设备选项语义冲突。
- * 用原生 <select>：9 个选项、一次设定后基本不再动，下拉框比一排分段按钮
- * 省下一大条横向空间，窄屏下也不会把机头撑高。
+ * 语言选择挂在左侧品牌区，不单独占机头的一列——放在最右侧时它和电源、
+ * 设备下拉并排，视觉上被抬成了和控制钮同级的东西，而语言是设一次就不再动
+ * 的偏好，不该那么抢眼。收在品牌副标题下方，归属「这是谁 + 全局设置」这一组。
+ * 用原生 <select>：9 个选项，下拉比一排分段按钮省一条横幅。
  */
 const langSelect = createSelect({
   label: t('语言'),
@@ -210,8 +210,9 @@ const langSelect = createSelect({
 });
 const langCluster = el('div', 'lang-cluster');
 langCluster.appendChild(langSelect.el);
+brandText.appendChild(langCluster);
 
-header.append(brand, powerCluster, ioCluster, langCluster);
+header.append(brand, powerCluster, ioCluster);
 
 /* ------------------------------------------------------------------ */
 /* 模式选择                                                            */
@@ -877,7 +878,7 @@ function renderHelp(): string {
       <li>${t('在「音源类型」里选择麦克风 / 标签页音频 / 内置测试音源。')}</li>
       <li>${t('选择「输出设备」为耳机线或 USB 声卡，戴上耳机监听。')}</li>
       <li>${t('点击信号链里的模块编辑参数，点灯或右键可旁通该模块。')}</li>
-      <li>${t('界面语言：机头铭牌最右侧的下拉框可以切换 9 种语言，首次打开会按浏览器语言自动选择。')}</li>
+      <li>${t('界面语言：左上角品牌区的下拉框可以切换 9 种语言，首次打开会按浏览器语言自动选择。')}</li>
       <li>${t('也可以{b}直接拖着模块在链上换位置{/b}——比如把混响拖到音箱前面，松手即生效。', { b: '<b>', '/b': '</b>' })}</li>
       <li>${t('{b}插到中间{/b}：从「效果器仓库」里把效果器直接拖到链上任意间隙，落点有竖线提示；或者用仓库顶部的「插入位置」（所选前 / 所选后 / 队尾）再点效果器。', { b: '<b>', '/b': '</b>' })}</li>
       <li>${t('旁通：点模块上的小绿灯、右键、或{b}长按模块{/b}（手机上用长按，因为没法右键）。', { b: '<b>', '/b': '</b>' })}</li>

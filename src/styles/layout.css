@@ -23,7 +23,7 @@
 .nameplate {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) auto minmax(280px, 1.1fr) auto;
+  grid-template-columns: minmax(240px, 1fr) auto minmax(280px, 1.1fr);
   align-items: center;
   gap: 18px;
   padding: 13px 20px;
@@ -1122,30 +1122,13 @@
     padding: 12px 12px 20px;
   }
   .nameplate {
-    /* 两列：品牌和语言挤在顶行，下面电源、设备各占一整行 */
-    grid-template-columns: 1fr auto;
+    /* 单列堆叠：品牌、电源、设备各占一行 */
+    grid-template-columns: 1fr;
     gap: 12px;
   }
 
   .brand {
-    grid-column: 1;
-    grid-row: 1;
     justify-content: flex-start;
-  }
-
-  .lang-cluster {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .power-cluster {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
-  .io-cluster {
-    grid-column: 1 / -1;
-    grid-row: 3;
   }
 
   .io-cluster,
@@ -1486,11 +1469,7 @@
     padding: 8px 10px;
   }
 
-  /* 语言下拉靠右贴边，和顶行的品牌拉开 */
-  .lang-cluster {
-    justify-content: flex-end;
-  }
-
+  /* 手机上语言下拉贴品牌左缘，别跟主音量挤在一起 */
   .lang-cluster .select {
     min-width: 108px;
   }
@@ -1771,20 +1750,20 @@
   transform: translateY(1px);
 }
 
-/* 语言选择（机头铭牌最右侧） */
+/* 语言选择（左侧品牌区，品牌副标题下方）
+   放在最右侧时它和电源、设备下拉并排，被抬成了和控制钮同级的东西，太抢眼；
+   语言是设一次就不再动的偏好，收在品牌信息下面更合乎归属。 */
 .lang-cluster {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  margin-top: 9px;
 }
 
 .lang-cluster .select {
   min-width: 116px;
 }
 
-/* 语言是全局偏好，用原生 select 而不是分段按钮：9 个选项一次设定后基本
-   不再动，下拉比横排九个按钮省下一条横幅，窄屏也不会把机头撑高。
-   字号沿用 .select select 的 12px，不在这里覆盖——否则会盖掉移动端
+/* 字号沿用 .select select 的 12px，不在这里覆盖——否则会盖掉移动端
    16px 那条（iOS 会对 <16px 的输入框自动放大页面）。 */
 
 /* --------------------------------------------------------------------------
