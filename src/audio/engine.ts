@@ -350,12 +350,18 @@ export class AudioEngine {
 
   /* ------------------------------ 设备枚举 ------------------------------ */
 
-  async listDevices(): Promise<{ inputs: DeviceEntry[]; outputs: DeviceEntry[] }> {
-    if (!navigator.mediaDevices?.enumerateDevices) return { inputs: [], outputs: [] };
+  async listDevices(): Promise<{ inputs: DeviceEntry[]; outputs: DeviceEntry[]; masked: boolean }> {
+    if (!navigator.mediaDevices?.enumerateDevices) return { inputs: [], outputs: [], masked: false };
     const list = await navigator.mediaDevices.enumerateDevices();
     const inputs: DeviceEntry[] = [];
     const outputs: DeviceEntry[] = [];
+    // 未授权麦克风时，浏览器会把 label 与 deviceId 抹成空串，只留数量。
+    // 这时用户看到的全是「输入设备 1/2/3」，既分不清也选不准，需要提示授权。
+    let masked = false;
     list.forEach((d, i) => {
+      if (d.kind === 'audioinput' || d.kind === 'audiooutput') {
+        if (!d.label || !d.deviceId) masked = true;
+      }
       const entry: DeviceEntry = {
         deviceId: d.deviceId,
         label: d.label || (d.kind === 'audioinput' ? `输入设备 ${i + 1}` : `输出设备 ${i + 1}`),
@@ -363,7 +369,17 @@ export class AudioEngine {
       if (d.kind === 'audioinput') inputs.push(entry);
       else if (d.kind === 'audiooutput') outputs.push(entry);
     });
-    return { inputs, outputs };
+    return { inputs, outputs, masked };
+  }
+
+  /**
+   * 短暂申请一次麦克风权限并立刻释放，用来解锁 enumerateDevices 的真实名称。
+   * 权限已授予时不会弹窗；未授予时会弹出浏览器授权框。
+   */
+  async unlockDeviceLabels(): Promise<void> {
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error('当前浏览器不支持设备枚举');
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    for (const t of stream.getTracks()) t.stop();
   }
 
   /* ------------------------------ 电平 / 音量 ---------------------------- */

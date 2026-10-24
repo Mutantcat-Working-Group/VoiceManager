@@ -10,7 +10,7 @@
 
 import './styles/index.css';
 
-import { AudioEngine, type InputSourceKind } from './audio/engine';
+import { AudioEngine, type DeviceEntry, type InputSourceKind } from './audio/engine';
 import { SignalChain, makeBlock } from './audio/chain';
 import { FX_CATEGORY_LABEL, FX_CATEGORY_ORDER, allFxSpecs, getFxSpec } from './audio/fx';
 import { PA_PRESETS, presetsForMode, type ChainPreset } from './audio/presets';
@@ -591,6 +591,30 @@ testRow.append(testModeSeg.el, testLevel.el);
 const ioHint = el('p', 'panel-hint');
 ioHint.textContent =
   '耳机线 / USB 声卡：在「输出设备」里选择对应接口即可。若列表中没有，请在系统声音设置里确认设备已被识别。追求最低延迟时，建议在 USB 声卡上做硬件直连监听。';
+
+/* 设备列表状态：签名用于比对是否真的变了，masked 表示名称被浏览器抹掉 */
+let deviceSig = '';
+let deviceMasked = false;
+let devicePoll: number | null = null;
+const DEVICE_POLL_MS = 2500;
+
+/* 设备授权提示：未授权麦克风时 enumerateDevices 会抹掉名称，只能看到「输入设备 1/2/3」 */
+const deviceHint = el('div', 'device-hint');
+const deviceHintText = el('p', 'panel-hint');
+const deviceHintBtn = el('button', 'btn btn-sm', { type: 'button' });
+deviceHintBtn.textContent = '授权并刷新设备列表';
+deviceHintBtn.addEventListener('click', () => void unlockDeviceLabels());
+deviceHint.append(deviceHintText, deviceHintBtn);
+
+function renderDeviceHint(): void {
+  const show = deviceMasked;
+  deviceHint.classList.toggle('hidden', !show);
+  deviceHintText.textContent = show
+    ? '浏览器在授权麦克风前不会透露设备名称，列表里因此只有「输入设备 1/2/3」。点右侧按钮授权一次即可显示真实名称，之后打开网页会自动带上名称。'
+    : '';
+}
+
+renderDeviceHint();
 const fbToggle = createToggle({
   label: '反馈抑制（自动凿掉啸叫频率）',
   checked: S().feedbackGuard,
@@ -620,7 +644,7 @@ function renderGuardStatus(st: { count: number; freqs: number[] }): void {
 }
 engine.onFeedbackGuard = (st) => renderGuardStatus(st);
 renderGuardStatus(engine.feedbackGuardState);
-ioBody.append(trimKnob.el, togglesWrap, fbWarn, fbToggle.el, guardStatus, testRow, ioHint);
+ioBody.append(trimKnob.el, deviceHint, togglesWrap, fbWarn, fbToggle.el, guardStatus, testRow, ioHint);
 ioPanel.body.appendChild(ioBody);
 sidebar.appendChild(ioPanel.el);
 
@@ -1092,6 +1116,7 @@ async function powerOn(): Promise<void> {
       engine.testTone.start();
     }
     store.setState((p) => ({ ...p, power: true }));
+    void refreshDevices(true); // getUserMedia 已授权，此刻才拿得到真实设备名
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     toast(`无法开启音频输入：${msg}`, 'error');
@@ -1136,6 +1161,10 @@ kindSelect.select.addEventListener('change', () => {
   }
 });
 
+// 点开下拉先刷一次，避免拿到过期列表
+inputDeviceSelect.select.addEventListener('pointerdown', () => void refreshDevices());
+outputDeviceSelect.select.addEventListener('pointerdown', () => void refreshDevices());
+
 inputDeviceSelect.select.addEventListener('change', () => {
   const id = inputDeviceSelect.getValue();
   store.setState((p) => ({ ...p, input: { ...p.input, deviceId: id } }));
@@ -1159,13 +1188,84 @@ engine.onDevicesChanged = () => {
   void refreshDevices();
 };
 
-async function refreshDevices(): Promise<void> {
-  const { inputs, outputs } = await engine.listDevices();
+/**
+ * 设备列表刷新。
+ *
+ * 两个坑：
+ * 1. 未授权麦克风时 enumerateDevices 只返回抹掉 label/deviceId 的条目，
+ *    打开网页时经常就这样，用户看到的全是「输入设备 1/2/3」。
+ * 2. devicechange 事件在 macOS / Chrome 上并不可靠，插拔常常不触发。
+ *    所以除了事件，再加一条定时轮询做兜底，靠签名比对判断是否真的变了。
+ */
+function deviceSignature(inputs: DeviceEntry[], outputs: DeviceEntry[]): string {
+  return (
+    inputs.map((d) => `i:${d.deviceId}|${d.label}`).join(';') +
+    '#' +
+    outputs.map((d) => `o:${d.deviceId}|${d.label}`).join(';')
+  );
+}
+
+async function refreshDevices(force = false): Promise<void> {
+  let list: Awaited<ReturnType<typeof engine.listDevices>>;
+  try {
+    list = await engine.listDevices();
+  } catch {
+    return;
+  }
+  const { inputs, outputs, masked } = list;
+  const sig = deviceSignature(inputs, outputs);
+  deviceMasked = masked;
+  if (!force && sig === deviceSig) {
+    renderDeviceHint();
+    return;
+  }
+  const first = deviceSig === '';
+  deviceSig = sig;
+
   inputDeviceSelect.setOptions(inputs.map((d) => ({ value: d.deviceId, label: d.label })));
   outputDeviceSelect.setOptions(outputs.map((d) => ({ value: d.deviceId, label: d.label })));
+
+  // 已选设备被拔掉时回落到系统默认，并明确告知，避免用户以为没声音是坏了
   const s = S();
-  if (s.input.deviceId) inputDeviceSelect.setValue(s.input.deviceId);
-  if (s.outputDeviceId) outputDeviceSelect.setValue(s.outputDeviceId);
+  if (s.input.deviceId && !inputs.some((d) => d.deviceId === s.input.deviceId)) {
+    store.setState((p) => ({ ...p, input: { ...p.input, deviceId: '' } }));
+    inputDeviceSelect.setValue('');
+    if (!first) toast('原输入设备已移除，已切换为系统默认输入', 'info');
+  } else {
+    inputDeviceSelect.setValue(s.input.deviceId);
+  }
+  if (s.outputDeviceId && !outputs.some((d) => d.deviceId === s.outputDeviceId)) {
+    store.setState((p) => ({ ...p, outputDeviceId: '' }));
+    outputDeviceSelect.setValue('');
+    if (!first) {
+      void engine.setOutputDevice('').catch(() => undefined);
+      toast('原输出设备已移除，已切换为系统默认输出', 'info');
+    }
+  } else {
+    outputDeviceSelect.setValue(s.outputDeviceId);
+  }
+
+  renderDeviceHint();
+}
+
+/** 授权一次麦克风以解锁真实设备名；权限已授予时不会弹窗 */
+async function unlockDeviceLabels(): Promise<void> {
+  try {
+    await engine.unlockDeviceLabels();
+    await refreshDevices(true);
+    if (!deviceMasked) toast('设备列表已刷新', 'info');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    toast(`无法获取麦克风权限：${msg}`, 'error');
+  }
+}
+
+function startDevicePolling(): void {
+  if (devicePoll !== null) return;
+  devicePoll = window.setInterval(() => {
+    if (document.hidden) return; // 后台标签页不轮询，省电
+    void refreshDevices();
+  }, DEVICE_POLL_MS);
 }
 
 /* ------------------------------ 面板动作 ------------------------------ */
@@ -1461,7 +1561,8 @@ function boot(): void {
   }
   requestAnimationFrame(frame);
 
-  void refreshDevices();
+  void refreshDevices(true);
+  startDevicePolling(); // devicechange 在 macOS/Chrome 上不可靠，轮询兜底
   void engine.ensureWorklets().then(() => {
     rebuildChain();
     if (S().outputDeviceId) void engine.setOutputDevice(S().outputDeviceId).catch(() => undefined);
