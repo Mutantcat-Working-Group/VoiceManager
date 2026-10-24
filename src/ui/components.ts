@@ -506,11 +506,21 @@ export function createSegmented(o: SegmentedOptions): SegmentedHandle {
 
 /* --------------------------------- 下拉 --------------------------------- */
 
+/**
+ * 选项标签。传字符串就是定值（设备真名这类不该翻译的内容）；
+ * 传函数则每次重建都重新求值——切语言时要靠它拿到新译文。
+ *
+ * 曾经这里只收字符串，调用方在模块加载时算一次 t()，于是选项文字冻在
+ * 建界面时的语言上；而 captureStaticText 那套只能救第一跳，一旦
+ * setOptions() 重建过就全被冲掉。改成惰性求值，让译文跟着语言走。
+ */
+export type SelectLabel = string | (() => string);
+
 export interface SelectOptions {
   label?: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: SelectLabel }[];
   value: string;
-  placeholder?: string;
+  placeholder?: SelectLabel;
   onChange?: (v: string) => void;
 }
 
@@ -519,7 +529,9 @@ export interface SelectHandle {
   select: HTMLSelectElement;
   setValue(v: string): void;
   getValue(): string;
-  setOptions(options: { value: string; label: string }[]): void;
+  setOptions(options: { value: string; label: SelectLabel }[]): void;
+  /** 语言切换后重填，让函数型标签按新语言重算 */
+  refresh(): void;
 }
 
 export function createSelect(o: SelectOptions): SelectHandle {
@@ -529,23 +541,41 @@ export function createSelect(o: SelectOptions): SelectHandle {
     select.setAttribute('aria-label', o.label);
     root.title = o.label;
   }
-  const fill = (options: { value: string; label: string }[]) => {
-    clear(select);
-    if (o.placeholder) {
-      const opt = el('option', '', { value: '' });
-      opt.textContent = o.placeholder;
-      select.appendChild(opt);
-    }
-    for (const op of options) {
+
+  const textOf = (l: SelectLabel): string => (typeof l === 'function' ? l() : l);
+
+  const addPlaceholder = (): void => {
+    if (!o.placeholder) return;
+    const opt = el('option', '', { value: '' });
+    opt.textContent = textOf(o.placeholder);
+    select.appendChild(opt);
+  };
+
+  const appendOptions = (list: { value: string; label: SelectLabel }[]): void => {
+    for (const op of list) {
       const opt = el('option', '', { value: op.value });
-      opt.textContent = op.label;
+      opt.textContent = textOf(op.label);
       select.appendChild(opt);
     }
   };
-  fill(o.options);
+
+  // 设备列表这类动态选项一旦设置就接管下拉；否则用构造时的静态选项
+  let dynamic: { value: string; label: SelectLabel }[] | null = null;
+
+  const render = (): void => {
+    const prev = select.value;
+    clear(select);
+    addPlaceholder();
+    appendOptions(dynamic ?? o.options);
+    // 尽量保住当前选中项，别因为重建把用户的选择打掉
+    if ([...select.options].some((x) => x.value === prev)) select.value = prev;
+  };
+
+  render();
   select.value = o.value;
   select.addEventListener('change', () => o.onChange?.(select.value));
   root.appendChild(select);
+
   return {
     el: root,
     select,
@@ -554,10 +584,15 @@ export function createSelect(o: SelectOptions): SelectHandle {
     },
     getValue: () => select.value,
     setOptions(options) {
+      dynamic = options;
       const prev = select.value;
-      fill(options);
-      select.value = options.some((x) => x.value === prev) ? prev : (options[0]?.value ?? '');
+      render();
+      // 原语义：旧值不在新列表里就落到第一项
+      if (![...select.options].some((x) => x.value === prev)) {
+        select.value = options[0]?.value ?? '';
+      }
     },
+    refresh: render,
   };
 }
 

@@ -359,13 +359,15 @@ export class AudioEngine {
     // 未授权麦克风时，浏览器会把 label 与 deviceId 抹成空串，只留数量。
     // 这时用户看到的全是「输入设备 1/2/3」，既分不清也选不准，需要提示授权。
     let masked = false;
-    list.forEach((d, i) => {
+    list.forEach((d) => {
       if (d.kind === 'audioinput' || d.kind === 'audiooutput') {
         if (!d.label || !d.deviceId) masked = true;
       }
       const entry: DeviceEntry = {
         deviceId: d.deviceId,
-        label: d.label || (d.kind === 'audioinput' ? t('输入设备 {n0}', { n0: i + 1 }) : t('输出设备 {n0}', { n0: i + 1 })),
+        // 只存浏览器给的原始 label。抹名时它是空串，「输入设备 N」这类占位文案
+        // 由调用点用惰性函数生成——插值结果不是词典键，烤进缓存数组后切语言不会重算。
+        label: d.label,
       };
       if (d.kind === 'audioinput') inputs.push(entry);
       else if (d.kind === 'audiooutput') outputs.push(entry);

@@ -147,21 +147,21 @@ const kindSelect = createSelect({
   label: t('音源类型'),
   value: S().input.kind,
   options: [
-    { value: 'mic', label: t('麦克风 / 线路输入') },
-    { value: 'tab', label: t('标签页 / 系统音频') },
-    { value: 'test', label: t('内置测试音源') },
+    { value: 'mic', label: () => t('麦克风 / 线路输入') },
+    { value: 'tab', label: () => t('标签页 / 系统音频') },
+    { value: 'test', label: () => t('内置测试音源') },
   ],
 });
 const inputDeviceSelect = createSelect({
   label: t('输入设备'),
   value: S().input.deviceId,
-  placeholder: t('系统默认输入'),
+  placeholder: () => t('系统默认输入'),
   options: [],
 });
 const outputDeviceSelect = createSelect({
   label: t('输出设备（耳机线 / USB 声卡）'),
   value: S().outputDeviceId,
-  placeholder: t('系统默认输出'),
+  placeholder: () => t('系统默认输出'),
   options: [],
 });
 
@@ -498,7 +498,9 @@ loopRow.style.flexWrap = 'wrap';
 const loopBars = createSelect({
   label: t('循环长度'),
   value: '4',
-  options: [1, 2, 4, 8, 16].map((n) => ({ value: String(n), label: t('{n0} 小节', { n0: n }) })),
+  // 带占位符的文案必须用函数：captureStaticText 存的是插值后的「4 小节」，
+  // 那不是词典键，重译时查不到，所以只能靠这里按当前语言重新求值
+  options: [1, 2, 4, 8, 16].map((n) => ({ value: String(n), label: () => t('{n0} 小节', { n0: n }) })),
 });
 const loopArmBtn = el('button', 'btn', { type: 'button', 'data-variant': 'primary' });
 loopArmBtn.textContent = t('开始循环录音');
@@ -937,7 +939,6 @@ const sbMode = el('span');
 const sbChain = el('span');
 const sbPreset = el('span');
 const sbHint = el('span');
-sbHint.innerHTML = t('提示：{k1} 电源 · {k2} 模式 · {k3} 节拍器 · {k4} 录音', { k1: kbd('空格'), k2: kbd('1-4'), k3: kbd('M'), k4: kbd('R') });
 statusbar.append(sbMode, sbChain, sbPreset, sbHint);
 
 const rack = el('div', 'rack');
@@ -953,11 +954,29 @@ else document.body.appendChild(rack);
  * 必须在挂载之后抓，否则 document 里还找不到这些节点。
  */
 captureStaticText();
-onLocaleChange(() => {
+
+/**
+ * 把界面整体切到当前语言。
+ *
+ * 除了手动切语言，启动时也要跑一次：界面是模块加载时建的，那会儿用的还是
+ * 默认语言（简体中文），而 boot() 里的 initI18n() 会按浏览器语言改掉当前
+ * 语言。只靠 onLocaleChange 的话，首次探测到外语的用户会看到「html lang 是
+ * en、界面却是中文、语言下拉框还停在简体中文」这种半吊子状态。
+ */
+function applyLocale(): void {
   retranslateStaticText();
   helpBody.innerHTML = renderHelp(); // 帮助面板是整块 innerHTML，单独重绘
   renderAll();
-});
+  // 下拉框的选中项要跟上当前语言，否则显示的和实际语言不一致
+  langSelect.setValue(getLocale());
+  // 选项文字是惰性求值的，重建一次才能换成新语言的译文
+  kindSelect.refresh();
+  inputDeviceSelect.refresh();
+  outputDeviceSelect.refresh();
+  loopBars.refresh();
+}
+
+onLocaleChange(applyLocale);
 
 /* ------------------------------------------------------------------ */
 /* 渲染逻辑                                                            */
@@ -1141,7 +1160,19 @@ function renderStatusbar(): void {
   sbPreset.innerHTML = '';
   sbPreset.append(t('预设 '));
   sbPreset.append(el('b', '', {}));
-  (sbPreset.lastChild as HTMLElement).textContent = mode.presetName;
+  // 不能直接用 mode.presetName——那是应用预设时算一次存进 state 的译文快照，
+  // 切语言不会更新。按 presetId 现查，每次渲染都取当前语言的译名。
+  const activePreset = presetsForMode(currentMode()).find((p) => p.id === mode.presetId);
+  (sbPreset.lastChild as HTMLElement).textContent = activePreset ? presetName(activePreset) : mode.presetName;
+  // 快捷键提示带内联 <kbd>，只能整块 innerHTML。曾经在模块加载时写一次，
+  // 而 captureStaticText 只抓「无子元素」的节点，夹在 kbd 之间的文本片段
+  // 它抓不到，于是这句永远停在初始语言。放进 renderStatusbar 每次重绘。
+  sbHint.innerHTML = t('提示：{k1} 电源 · {k2} 模式 · {k3} 节拍器 · {k4} 录音', {
+    k1: kbd('空格'),
+    k2: kbd('1-4'),
+    k3: kbd('M'),
+    k4: kbd('R'),
+  });
 }
 
 function renderAll(): void {
@@ -1154,6 +1185,10 @@ function renderAll(): void {
   renderStatusStrip();
   renderEchoShield();
   renderInsertHint();
+  // 设备授权提示也走 t()，但它平时只在设备轮询里刷新，
+  // 不放进 renderAll 的话切语言后要等下一轮轮询（≤2.5s）才换文案
+  renderDeviceHint();
+  renderGuardStatus(engine.feedbackGuardState);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1486,10 +1521,11 @@ engine.onDevicesChanged = () => {
  *    所以除了事件，再加一条定时轮询做兜底，靠签名比对判断是否真的变了。
  */
 function deviceSignature(inputs: DeviceEntry[], outputs: DeviceEntry[]): string {
+  // 抹名时 label 是空串，光靠它分不出设备增减，所以把序号也并进签名
   return (
-    inputs.map((d) => `i:${d.deviceId}|${d.label}`).join(';') +
+    inputs.map((d, i) => `i:${d.deviceId}|${d.label}|${i}`).join(';') +
     '#' +
-    outputs.map((d) => `o:${d.deviceId}|${d.label}`).join(';')
+    outputs.map((d, i) => `o:${d.deviceId}|${d.label}|${i}`).join(';')
   );
 }
 
@@ -1510,8 +1546,13 @@ async function refreshDevices(force = false): Promise<void> {
   const first = deviceSig === '';
   deviceSig = sig;
 
-  inputDeviceSelect.setOptions(inputs.map((d) => ({ value: d.deviceId, label: d.label })));
-  outputDeviceSelect.setOptions(outputs.map((d) => ({ value: d.deviceId, label: d.label })));
+  // 抹名时的占位标签用惰性函数：这些选项会被缓存下来，切语言后靠 refresh() 重算
+  inputDeviceSelect.setOptions(
+    inputs.map((d, i) => ({ value: d.deviceId, label: d.label || (() => t('输入设备 {n0}', { n0: i + 1 })) })),
+  );
+  outputDeviceSelect.setOptions(
+    outputs.map((d, i) => ({ value: d.deviceId, label: d.label || (() => t('输出设备 {n0}', { n0: i + 1 })) })),
+  );
 
   // 已选设备被拔掉时回落到系统默认，并明确告知，避免用户以为没声音是坏了
   const s = S();
@@ -1838,6 +1879,8 @@ function frame(): void {
 
 function boot(): void {
   initI18n();
+  // initI18n 可能把语言改成浏览器语言，得把界面整体刷一遍（见 applyLocale 注释）
+  applyLocale();
   testRow.classList.toggle('hidden', S().input.kind !== 'test');
   inputDeviceSelect.el.classList.toggle('hidden', S().input.kind === 'tab');
   renderAll();

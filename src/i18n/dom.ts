@@ -18,9 +18,24 @@
  */
 import { t } from './index';
 
+/**
+ * 静态文案快照。
+ *
+ * 两个字段必须分开：
+ *   textKey / titleKey / ariaKey —— 词典键（简体中文原文），整个生命周期不变
+ *   text / title / aria          —— 上次由我们写入的值
+ *
+ * 曾经把两者合成一个字段、重译后拿译文当新键存，结果第二次切语言时 t() 查的是
+ * 「上次译成的文字」，那不是词典键、查不到，于是文字冻在第一次译成的语言上。
+ * 只有当节点当前值仍等于我们上次写入的值时才重译——不一致说明它被 render
+ * 函数接管了（状态行、表头读数），跳过以免把动态内容覆盖回静态文案。
+ */
 interface Snap {
+  textKey?: string;
   text?: string;
+  titleKey?: string;
   title?: string;
+  ariaKey?: string;
   aria?: string;
 }
 
@@ -37,10 +52,21 @@ export function captureStaticText(root: ParentNode = document): void {
       const snap: Snap = {};
       const text = el.textContent;
       // 只在叶子节点上记 textContent，否则会把后代的中文一起算进来
-      if (!el.children.length && hasCJK(text)) snap.text = text ?? '';
-      if (hasCJK(el.getAttribute('title'))) snap.title = el.getAttribute('title') ?? '';
-      if (hasCJK(el.getAttribute('aria-label'))) snap.aria = el.getAttribute('aria-label') ?? '';
-      if (snap.text !== undefined || snap.title !== undefined || snap.aria !== undefined) {
+      if (!el.children.length && hasCJK(text)) {
+        snap.textKey = text ?? '';
+        snap.text = text ?? '';
+      }
+      const title = el.getAttribute('title');
+      if (hasCJK(title)) {
+        snap.titleKey = title ?? '';
+        snap.title = title ?? '';
+      }
+      const aria = el.getAttribute('aria-label');
+      if (hasCJK(aria)) {
+        snap.ariaKey = aria ?? '';
+        snap.aria = aria ?? '';
+      }
+      if (snap.textKey !== undefined || snap.titleKey !== undefined || snap.ariaKey !== undefined) {
         snaps.set(el, snap);
       }
       walk(el);
@@ -55,18 +81,19 @@ export function retranslateStaticText(root: ParentNode = document): void {
     for (const el of Array.from(node.children)) {
       const snap = snaps.get(el);
       if (snap) {
-        if (snap.text !== undefined && el.textContent === snap.text) {
-          const next = t(snap.text);
+        // 一律用 Key 查词典；写入的值只用来判断节点是否被动态接管
+        if (snap.textKey !== undefined && el.textContent === snap.text) {
+          const next = t(snap.textKey);
           el.textContent = next;
           snap.text = next;
         }
-        if (snap.title !== undefined && el.getAttribute('title') === snap.title) {
-          const next = t(snap.title);
+        if (snap.titleKey !== undefined && el.getAttribute('title') === snap.title) {
+          const next = t(snap.titleKey);
           el.setAttribute('title', next);
           snap.title = next;
         }
-        if (snap.aria !== undefined && el.getAttribute('aria-label') === snap.aria) {
-          const next = t(snap.aria);
+        if (snap.ariaKey !== undefined && el.getAttribute('aria-label') === snap.aria) {
+          const next = t(snap.ariaKey);
           el.setAttribute('aria-label', next);
           snap.aria = next;
         }
@@ -90,8 +117,16 @@ export function bindText(
   if (attr === 'textContent') el.textContent = value;
   else el.setAttribute(attr, value);
   const snap = snaps.get(el) ?? {};
-  if (attr === 'textContent') snap.text = key;
-  else if (attr === 'title') snap.title = key;
-  else snap.aria = key;
+  // Key 是原文，另一个字段记当前值——两者不能混成一个，见 Snap 的注释
+  if (attr === 'textContent') {
+    snap.textKey = key;
+    snap.text = value;
+  } else if (attr === 'title') {
+    snap.titleKey = key;
+    snap.title = value;
+  } else {
+    snap.ariaKey = key;
+    snap.aria = value;
+  }
   snaps.set(el, snap);
 }
