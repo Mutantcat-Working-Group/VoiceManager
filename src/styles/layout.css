@@ -1200,3 +1200,92 @@
 .device-hint .btn {
   align-self: flex-start;
 }
+
+/* ----------------------------- 回声防护检查表 ----------------------------- */
+
+.echo-shield {
+  margin: 2px 0 4px;
+  padding: 9px 11px 10px;
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, rgba(70, 62, 48, 0.5), rgba(46, 40, 30, 0.5));
+  box-shadow:
+    inset 0 0 0 1px rgba(212, 160, 74, 0.22),
+    0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.echo-shield-head {
+  margin-bottom: 7px;
+  color: #d8b078;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.echo-shield-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.echo-shield-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.echo-shield-row[data-ok='true'] {
+  color: #c8bfa6;
+}
+
+.echo-shield-row[data-ok='false'] {
+  color: #f0c078;
+}
+
+.echo-shield-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4c4638;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.echo-shield-row[data-ok='true'] .echo-shield-dot {
+  background: #6fbf73;
+  box-shadow: 0 0 6px rgba(111, 191, 115, 0.55);
+}
+
+.echo-shield-row[data-ok='false'] .echo-shield-dot {
+  background: #e0913a;
+  box-shadow: 0 0 6px rgba(224, 145, 58, 0.6);
+}
+
+.echo-shield-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.echo-shield-row .btn-xs {
+  flex: none;
+  padding: 2px 8px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.echo-shield-note {
+  margin: 8px 0 0;
+  color: #e8b878;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.echo-shield-note:empty {
+  display: none;
+}

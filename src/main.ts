@@ -641,10 +641,91 @@ function renderGuardStatus(st: { count: number; freqs: number[] }): void {
       .map((f) => `${(f / 1000).toFixed(2)} kHz`)
       .join(' / ')}`;
   }
+  renderEchoShield();
 }
+/* ----------------------------- 回声防护自检 ----------------------------- */
+/*
+ * 三层防护各自独立生效，任何一层配错，回声就会回来。之前的问题是用户把
+ * 噪声门阈值拖到 0 dB（门永远开着），却没有任何提示。这里把三层合成一张
+ * 检查表：哪层配错就直接说原因，并给一键修复。
+ */
+
+const GATE_SAFE_DB = -45; // 人声/乐器安全阈值
+const GATE_WARN_DB = -30; // 高于此值门基本关不上，挡不住回声回路
+const WET_WARN = 0.4; // 混响/延迟湿声上限
+
+const echoShield = el('div', 'echo-shield');
+const shieldHead = el('div', 'echo-shield-head');
+shieldHead.textContent = '回声防护';
+const shieldList = el('ul', 'echo-shield-list');
+const shieldNote = el('p', 'echo-shield-note');
+echoShield.append(shieldHead, shieldList, shieldNote);
+
+function chainBlock(id: string) {
+  return S().modes[S().mode].blocks.find((b) => b.id === id);
+}
+
+function shieldRow(ok: boolean, label: string, fix?: () => void): void {
+  const li = el('li', 'echo-shield-row', { 'data-ok': ok ? 'true' : 'false' });
+  const dot = el('span', 'echo-shield-dot');
+  const text = el('span', 'echo-shield-text');
+  text.textContent = label;
+  li.append(dot, text);
+  if (fix) {
+    const btn = el('button', 'btn btn-xs', { type: 'button' });
+    btn.textContent = '修复';
+    btn.addEventListener('click', fix);
+    li.append(btn);
+  }
+  shieldList.appendChild(li);
+}
+
+function renderEchoShield(): void {
+  const s = S();
+  clear(shieldList);
+  clear(shieldNote);
+
+  shieldRow(s.input.echoCancellation, s.input.echoCancellation ? '浏览器回声消除 · 已开启' : '浏览器回声消除 · 已关闭（用扬声器放音会拾回自己的声音）');
+  shieldRow(s.feedbackGuard, s.feedbackGuard ? `反馈抑制 · ${guardStatus.textContent}` : '反馈抑制 · 已关闭（窄带啸叫不会自动被凿掉）');
+
+  const gate = chainBlock('noise-gate');
+  if (gate) {
+    const th = gate.params.threshold as number;
+    if (gate.bypassed) {
+      shieldRow(false, '噪声门 · 已旁通（没有东西能切断持续回声）', () => toggleBypass(gate.uid));
+    } else if (th > GATE_WARN_DB) {
+      shieldRow(
+        false,
+        `噪声门 · 阈值 ${th.toFixed(0)} dB 太高，门几乎不会关闭，挡不住回声`,
+        () => {
+          setBlockParam(gate.uid, 'threshold', GATE_SAFE_DB);
+          renderFxPanel();
+          toast(`噪声门阈值已设为 ${GATE_SAFE_DB} dB`, 'info');
+        },
+      );
+    } else {
+      shieldRow(true, `噪声门 · 阈值 ${th.toFixed(0)} dB，就绪`);
+    }
+  }
+
+  // 湿声提示：混响/延迟的尾巴会被扬声器→麦克风拾回，越拖越长
+  const wetNotes: string[] = [];
+  for (const id of ['reverb', 'delay'] as const) {
+    const b = chainBlock(id);
+    if (!b || b.bypassed) continue;
+    const wet = b.params.wet as number;
+    if (wet > WET_WARN) {
+      wetNotes.push(`${getFxSpec(id)?.name ?? id} 湿声 ${Math.round(wet * 100)}%`);
+    }
+  }
+  if (wetNotes.length > 0) {
+    shieldNote.textContent = `⚠ ${wetNotes.join('、')}：湿声会被扬声器→麦克风拾回，形成越拖越长的回声。建议降到 40% 以下，或改用耳机。`;
+  }
+}
+
+ioBody.append(trimKnob.el, deviceHint, echoShield, togglesWrap, fbWarn, fbToggle.el, guardStatus, testRow, ioHint);
 engine.onFeedbackGuard = (st) => renderGuardStatus(st);
 renderGuardStatus(engine.feedbackGuardState);
-ioBody.append(trimKnob.el, deviceHint, togglesWrap, fbWarn, fbToggle.el, guardStatus, testRow, ioHint);
 ioPanel.body.appendChild(ioBody);
 sidebar.appendChild(ioPanel.el);
 
@@ -671,6 +752,9 @@ helpBody.innerHTML = `
         频率消失约 2 秒后凹槽自动恢复，不会在音色上留疤痕。面板里能看到当前压制了哪些频率。</li>
     </ul>
     <p>另外建议关闭「自动增益控制」：它会把安静的反馈残余一起放大，更容易起振。</p>
+    <p><b>「输入与设备」面板顶部的「回声防护」检查表会实时盯着这三层。</b>任何一层配错都会标红并说清原因，
+    多数情况旁边就有「修复」按钮。最常见的两种配错：噪声门阈值被拖到 0 dB 以上（门永远开着，什么都挡不住），
+    以及混响 / 延迟湿声开得太大（湿声被扬声器→麦克风拾回，越拖越长）。</p>
   </div>
   <div>
     <h4>关于噪声门</h4>
@@ -767,6 +851,7 @@ function renderChain(): void {
     };
   });
   chainView.update(views, s.power && engine.hasInputStream);
+  renderEchoShield(); // 参数/旁通一变，回声防护结论可能就变了
 }
 
 function renderFxPanel(): void {
@@ -906,6 +991,7 @@ function renderAll(): void {
   renderPresets();
   renderStatusbar();
   renderStatusStrip();
+  renderEchoShield();
 }
 
 /* ------------------------------------------------------------------ */
