@@ -84,7 +84,7 @@
 
 #### 多语言
 
-9 种语言：简体中文（源语言）、English、日本語、Français、Deutsch、Español、Português (Brasil)、Русский、한국어。切换入口在右栏「输入与设备」面板顶部。
+9 种语言：简体中文（源语言）、English、日本語、Français、Deutsch、Español、Português (Brasil)、Русский、한국어。切换入口在机头铭牌最右侧的语言下拉框。
 
 首次打开按浏览器语言自动挑，优先级：`localStorage` 里上次手动选过的 → `navigator.languages` 逐个匹配（精确 → 主语言 → 方言回退）→ 简体中文。首次检测不写入 localStorage，之后改浏览器语言下次打开仍生效。
 

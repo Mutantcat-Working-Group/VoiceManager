@@ -325,13 +325,13 @@ ROWS += [
 ]
 
 ROWS += [
-    ('界面语言：右栏「输入与设备」面板顶部可以切换 9 种语言，首次打开会按浏览器语言自动选择。',
-     'Interface language: switch between 9 languages at the top of the “Input & output” panel in the right column; your browser language is used on first open.',
-     '表示言語：右列の「入力とデバイス」パネル上部で 9 言語を切り替えられます。初回はブラウザ言語から自動選択されます。',
-     'Langue de l’interface : changez parmi 9 langues en haut du panneau « Entrée et sortie » de la colonne de droite ; la langue du navigateur est utilisée au premier lancement.',
-     'Oberflächensprache: oben im Panel „Eingang & Ausgang“ der rechten Spalte zwischen 9 Sprachen wechseln; beim ersten Öffnen wird die Browsersprache verwendet.',
-     'Idioma de la interfaz: cambia entre 9 idiomas arriba del panel «Entrada y salida» de la columna derecha; la primera vez se usa el idioma del navegador.',
-     'Idioma da interface: alterne entre 9 idiomas no topo do painel «Entrada e saída» da coluna direita; na primeira abertura é usado o idioma do navegador.',
-     'Язык интерфейса: 9 языков переключаются вверху панели «Вход и выход» в правой колонке; при первом открытии берётся язык браузера.',
-     '인터페이스 언어: 오른쪽 열의 «입력과 출력» 패널 위에서 9개 언어를 전환할 수 있으며, 처음 열 때는 브라우저 언어가 사용됩니다.'),
+    ('界面语言：机头铭牌最右侧的下拉框可以切换 9 种语言，首次打开会按浏览器语言自动选择。',
+     'Interface language: switch between 9 languages from the dropdown at the far right of the front nameplate; your browser language is used on first open.',
+     '表示言語：前面銘板の右端にあるドロップダウンで 9 言語を切り替えられます。初回はブラウザ言語から自動選択されます。',
+     'Langue de l’interface : choisissez parmi 9 langues dans le menu déroulant à l’extrémité droite de la plaque frontale ; la langue du navigateur est utilisée au premier lancement.',
+     'Oberflächensprache: im Dropdown ganz rechts am Frontpanel zwischen 9 Sprachen wechseln; beim ersten Öffnen wird die Browsersprache verwendet.',
+     'Idioma de la interfaz: cambia entre 9 idiomas desde el menú desplegable del extremo derecho del panel frontal; la primera vez se usa el idioma del navegador.',
+     'Idioma da interface: alterne entre 9 idiomas no menu suspenso na extremidade direita da placa frontal; na primeira abertura é usado o idioma do navegador.',
+     'Язык интерфейса: 9 языков переключаются в раскрывающемся списке в крайней правой части лицевой панели; при первом открытии берётся язык браузера.',
+     '인터페이스 언어: 전면 명판의 가장 오른쪽에 있는 드롭다운에서 9개 언어를 전환할 수 있으며, 처음 열 때는 브라우저 언어가 사용됩니다.'),
 ]

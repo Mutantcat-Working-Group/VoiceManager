@@ -23,7 +23,7 @@
 .nameplate {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) auto minmax(280px, 1.1fr);
+  grid-template-columns: minmax(240px, 1fr) auto minmax(280px, 1.1fr) auto;
   align-items: center;
   gap: 18px;
   padding: 13px 20px;
@@ -1122,9 +1122,32 @@
     padding: 12px 12px 20px;
   }
   .nameplate {
-    grid-template-columns: 1fr;
+    /* 两列：品牌和语言挤在顶行，下面电源、设备各占一整行 */
+    grid-template-columns: 1fr auto;
     gap: 12px;
   }
+
+  .brand {
+    grid-column: 1;
+    grid-row: 1;
+    justify-content: flex-start;
+  }
+
+  .lang-cluster {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .power-cluster {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .io-cluster {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
   .io-cluster,
   .io-row {
     align-items: stretch;
@@ -1451,13 +1474,25 @@
     max-width: none;
   }
 
-  /* 16px 是底线：iOS 会对 <16px 的输入框自动放大页面 */
+  /* 16px 是底线：iOS 会对 <16px 的输入框自动放大页面。
+     选择器必须比 .select select（0,1,1）更具体，否则基础样式会赢，
+     这条 16px 根本套不上——语言下拉就踩过这个坑。 */
   .io-row .select select,
   .field-grid select,
+  .lang-cluster .select select,
   select {
     font-size: 16px;
     min-height: 42px;
     padding: 8px 10px;
+  }
+
+  /* 语言下拉靠右贴边，和顶行的品牌拉开 */
+  .lang-cluster {
+    justify-content: flex-end;
+  }
+
+  .lang-cluster .select {
+    min-width: 108px;
   }
 
   .status-strip {
@@ -1736,13 +1771,21 @@
   transform: translateY(1px);
 }
 
-/* 语言选择器提示 */
-.lang-hint {
-  margin: 0 0 4px;
-  color: var(--c-ink-3);
-  font-size: 11px;
-  line-height: 1.5;
+/* 语言选择（机头铭牌最右侧） */
+.lang-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
+
+.lang-cluster .select {
+  min-width: 116px;
+}
+
+/* 语言是全局偏好，用原生 select 而不是分段按钮：9 个选项一次设定后基本
+   不再动，下拉比横排九个按钮省下一条横幅，窄屏也不会把机头撑高。
+   字号沿用 .select select 的 12px，不在这里覆盖——否则会盖掉移动端
+   16px 那条（iOS 会对 <16px 的输入框自动放大页面）。 */
 
 /* --------------------------------------------------------------------------
    禁用 JavaScript 时的兜底页（<noscript>）

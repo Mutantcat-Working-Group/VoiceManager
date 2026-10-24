@@ -490,5 +490,5 @@ export const en: Dict = {
   '语言': 'Language',
   '首次打开时按浏览器语言自动选择；切换后会被记住。当前浏览器语言：{n0}': 'Picked automatically from your browser language on first open; your choice is remembered. Current browser language: {n0}',
   '输出补偿': 'Output trim',
-  '界面语言：右栏「输入与设备」面板顶部可以切换 9 种语言，首次打开会按浏览器语言自动选择。': 'Interface language: switch between 9 languages at the top of the “Input & output” panel in the right column; your browser language is used on first open.',
+  '界面语言：机头铭牌最右侧的下拉框可以切换 9 种语言，首次打开会按浏览器语言自动选择。': 'Interface language: switch between 9 languages from the dropdown at the far right of the front nameplate; your browser language is used on first open.',
 };
