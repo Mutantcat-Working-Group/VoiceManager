@@ -12,7 +12,7 @@ import './styles/index.css';
 
 import { AudioEngine, type DeviceEntry, type InputSourceKind } from './audio/engine';
 import { SignalChain, makeBlock } from './audio/chain';
-import { FX_CATEGORY_LABEL, FX_CATEGORY_ORDER, allFxSpecs, getFxSpec } from './audio/fx';
+import { FX_CATEGORY_ORDER, allFxSpecs, getFxSpec } from './audio/fx';
 import { PA_PRESETS, presetsForMode, type ChainPreset } from './audio/presets';
 import { setTempo } from './audio/tempo';
 import { testToneModeLabel } from './audio/test-tone';
@@ -21,7 +21,7 @@ import { Tuner } from './audio/tuner';
 import { LoopStation, Recorder, type RecordingItem } from './audio/recorder';
 import { createStore } from './state/store';
 import { createInitialState } from './state/initial';
-import { MODE_LIST, modeInfo, type AppState, type FxBlockState, type ModeId } from './types';
+import { MODE_LIST, modeBlurb, modeInfo, modeName, type AppState, type FxBlockState, type ModeId } from './types';
 import {
   clear,
   createKnob,
@@ -36,6 +36,9 @@ import {
 } from './ui/components';
 import { createChainView, FX_DRAG_TYPE, type ChainBlockView } from './ui/chainview';
 import { createMeterBank, createSpectrum } from './ui/meters';
+import { captureStaticText, retranslateStaticText } from './i18n/dom';
+import { LOCALES, getLocale, initI18n, onLocaleChange, setLocale, t, type Locale } from './i18n';
+import { fxBlurb, fxCategoryLabel, fxName, fxOptionLabel, fxParamFormat, fxParamLabel, presetBlurb, presetName } from './i18n/fx';
 
 /* ------------------------------------------------------------------ */
 /* 状态与引擎                                                          */
@@ -104,7 +107,7 @@ const brandText = el('div', 'brand-text');
 const brandName = el('div', 'brand-name');
 brandName.textContent = 'VOICE MANAGER';
 const brandSub = el('div', 'brand-sub');
-brandSub.textContent = 'MUTANTCAT · VM-5000 · 浏览器音频工作站';
+brandSub.textContent = t('MUTANTCAT · VM-5000 · 浏览器音频工作站');
 brandText.appendChild(brandName);
 brandText.appendChild(brandSub);
 brand.appendChild(mark);
@@ -115,15 +118,15 @@ const powerSwitch = el('div', 'power-switch');
 const powerBtn = el('button', 'power-btn', {
   type: 'button',
   'aria-pressed': 'false',
-  'aria-label': '电源开关',
-  title: '开启 / 关闭扩音（空格）',
+  'aria-label': t('电源开关'),
+  title: t('开启 / 关闭扩音（空格）'),
 });
 const powerCap = el('div', 'power-caption');
 powerCap.textContent = 'POWER';
 powerSwitch.appendChild(powerBtn);
 powerSwitch.appendChild(powerCap);
 const masterKnob = createKnob({
-  label: '主音量',
+  label: t('主音量'),
   min: -60,
   max: 0,
   step: 0.5,
@@ -141,24 +144,24 @@ powerCluster.appendChild(masterKnob.el);
 
 const ioCluster = el('div', 'io-cluster');
 const kindSelect = createSelect({
-  label: '音源类型',
+  label: t('音源类型'),
   value: S().input.kind,
   options: [
-    { value: 'mic', label: '麦克风 / 线路输入' },
-    { value: 'tab', label: '标签页 / 系统音频' },
-    { value: 'test', label: '内置测试音源' },
+    { value: 'mic', label: t('麦克风 / 线路输入') },
+    { value: 'tab', label: t('标签页 / 系统音频') },
+    { value: 'test', label: t('内置测试音源') },
   ],
 });
 const inputDeviceSelect = createSelect({
-  label: '输入设备',
+  label: t('输入设备'),
   value: S().input.deviceId,
-  placeholder: '系统默认输入',
+  placeholder: t('系统默认输入'),
   options: [],
 });
 const outputDeviceSelect = createSelect({
-  label: '输出设备（耳机线 / USB 声卡）',
+  label: t('输出设备（耳机线 / USB 声卡）'),
   value: S().outputDeviceId,
-  placeholder: '系统默认输出',
+  placeholder: t('系统默认输出'),
   options: [],
 });
 
@@ -171,23 +174,23 @@ const chipEngine = el('span', 'status-chip');
 function renderStatusStrip(): void {
   const s = S();
   chipPower.innerHTML = '';
-  chipPower.append('状态 ');
+  chipPower.append(t('状态 '));
   const b = el('b');
-  b.textContent = s.power ? '运行中' : '已停止';
+  b.textContent = s.power ? t('运行中') : t('已停止');
   chipPower.append(b);
   chipSr.innerHTML = '';
-  chipSr.append('采样率 ');
+  chipSr.append(t('采样率 '));
   chipSr.append(el('b', '', {}));
   (chipSr.lastChild as HTMLElement).textContent = `${(engine.sampleRate / 1000).toFixed(1)} kHz`;
   const lat = (engine.ctx.baseLatency ?? 0) * 1000 + (engine.ctx.outputLatency ?? 0) * 1000;
   chipLatency.innerHTML = '';
-  chipLatency.append('延迟 ');
+  chipLatency.append(t('延迟 '));
   chipLatency.append(el('b', '', {}));
   (chipLatency.lastChild as HTMLElement).textContent = lat > 0 ? `${lat.toFixed(1)} ms` : '—';
   chipEngine.innerHTML = '';
   chipEngine.append('Worklet ');
   chipEngine.append(el('b', '', {}));
-  (chipEngine.lastChild as HTMLElement).textContent = engine.supported ? '就绪' : '不可用';
+  (chipEngine.lastChild as HTMLElement).textContent = engine.supported ? t('就绪') : t('不可用');
 }
 
 statusStrip.append(chipPower, chipSr, chipLatency, chipEngine);
@@ -198,14 +201,14 @@ header.append(brand, powerCluster, ioCluster);
 /* 模式选择                                                            */
 /* ------------------------------------------------------------------ */
 
-const modebar = el('nav', 'modebar', { 'aria-label': '模式选择' });
+const modebar = el('nav', 'modebar', { 'aria-label': t('模式选择') });
 const modeButtons = new Map<ModeId, HTMLButtonElement>();
 for (const m of MODE_LIST) {
   const btn = el('button', 'mode-btn', {
     type: 'button',
     'aria-pressed': 'false',
     'data-mode': m.id,
-    title: m.blurb,
+    title: modeBlurb(m.id),
   });
   const code = el('span', 'mode-code');
   code.textContent = m.code;
@@ -213,7 +216,7 @@ for (const m of MODE_LIST) {
   const name = el('div', 'mode-name');
   name.textContent = m.name;
   const blurb = el('div', 'mode-blurb');
-  blurb.textContent = m.blurb;
+  blurb.textContent = modeBlurb(m.id);
   meta.append(name, blurb);
   btn.append(code, meta);
   btn.addEventListener('click', () => switchMode(m.id));
@@ -229,11 +232,11 @@ const chainbar = el('section', 'chainbar');
 const chainHead = el('div', 'chainbar-head');
 const chainTitle = el('div');
 chainTitle.append(el('span', 'silk'));
-(chainTitle.firstChild as HTMLElement).textContent = '信号链路 / SIGNAL PATH';
+(chainTitle.firstChild as HTMLElement).textContent = t('信号链路 / SIGNAL PATH');
 const chainHint = el('span', 'panel-hint');
-chainHint.textContent = '点击模块编辑参数 · 点灯或右键切换旁通';
+chainHint.textContent = t('点击模块编辑参数 · 点灯或右键切换旁通');
 const chainSwipe = el('span', 'panel-hint chain-swipe');
-chainSwipe.textContent = '← 左右滑动查看整条链 →';
+chainSwipe.textContent = t('← 左右滑动查看整条链 →');
 chainHead.append(chainTitle, chainHint, chainSwipe);
 const chainView = createChainView({
   onSelect: (uid) => selectBlock(uid),
@@ -265,31 +268,31 @@ const bypassBtn = createStomp(false, (on) => {
   const uid = selectedUid();
   if (!uid) return;
   toggleBypass(uid, on);
-}, '旁通该效果器');
-const moveUpBtn = el('button', 'btn btn-icon', { type: 'button', title: '上移' });
+}, t('旁通该效果器'));
+const moveUpBtn = el('button', 'btn btn-icon', { type: 'button', title: t('上移') });
 moveUpBtn.textContent = '↑';
-const moveDownBtn = el('button', 'btn btn-icon', { type: 'button', title: '下移' });
+const moveDownBtn = el('button', 'btn btn-icon', { type: 'button', title: t('下移') });
 moveDownBtn.textContent = '↓';
-const dupBtn = el('button', 'btn btn-icon', { type: 'button', title: '复制该效果器' });
+const dupBtn = el('button', 'btn btn-icon', { type: 'button', title: t('复制该效果器') });
 dupBtn.textContent = '⧉';
-const delBtn = el('button', 'btn btn-icon', { type: 'button', title: '移除该效果器' });
+const delBtn = el('button', 'btn btn-icon', { type: 'button', title: t('移除该效果器') });
 delBtn.textContent = '✕';
-const resetBtn = el('button', 'btn', { type: 'button', title: '恢复该效果器默认参数' });
-resetBtn.textContent = '重置';
+const resetBtn = el('button', 'btn', { type: 'button', title: t('恢复该效果器默认参数') });
+resetBtn.textContent = t('重置');
 fxActions.append(bypassBtn.el, moveUpBtn, moveDownBtn, dupBtn, delBtn, resetBtn);
 
 /* 电平 + 频谱：紧跟信号链路，监测当前这条链的输入输出 */
-const meterPanel = createPanel({ title: '电平 / 频谱', code: 'MTR' });
+const meterPanel = createPanel({ title: t('电平 / 频谱'), code: 'MTR' });
 const meterBank = createMeterBank();
 const spectrum = createSpectrum(() => engine.analyserOut);
 meterPanel.body.append(meterBank.el, spectrum.el);
 workarea.append(hero, meterPanel.el);
 
-const fxPanel = createPanel({ title: '效果器', code: 'FX', actions: [fxActions] });
+const fxPanel = createPanel({ title: t('效果器'), code: 'FX', actions: [fxActions] });
 workarea.appendChild(fxPanel.el);
 
 /* 预设：与信号链路相邻，改完参数就能整组试听 */
-const presetPanel = createPanel({ title: '预设', code: 'PRE' });
+const presetPanel = createPanel({ title: t('预设'), code: 'PRE' });
 const presetGrid = el('div', 'preset-grid');
 presetPanel.body.appendChild(presetGrid);
 const presetHint = el('p', 'panel-hint');
@@ -298,7 +301,7 @@ presetPanel.body.appendChild(presetHint);
 workarea.appendChild(presetPanel.el);
 
 /* 效果器仓库 */
-const library = createPanel({ title: '效果器仓库', code: 'LIB', collapsible: true, startCollapsed: false });
+const library = createPanel({ title: t('效果器仓库'), code: 'LIB', collapsible: true, startCollapsed: false });
 const libBody = library.body;
 /** 插入位置：链尾 / 所选模块前 / 所选模块后 */
 type InsertPos = 'tail' | 'before' | 'after';
@@ -306,11 +309,11 @@ let insertPos: InsertPos = 'after';
 
 /* 插入位置选择：点仓库里的效果器时插到哪儿 */
 const insertSeg = createSegmented({
-  label: '插入位置',
+  label: t('插入位置'),
   options: [
-    { value: 'after', label: '所选后' },
-    { value: 'before', label: '所选前' },
-    { value: 'tail', label: '队尾' },
+    { value: 'after', label: t('所选后') },
+    { value: 'before', label: t('所选前') },
+    { value: 'tail', label: t('队尾') },
   ],
   value: insertPos,
   onChange: (v) => {
@@ -322,12 +325,10 @@ const insertHint = el('p', 'panel-hint insert-hint');
 function renderInsertHint(): void {
   const sel = selectedBlock();
   if (insertPos === 'tail' || !sel) {
-    insertHint.textContent = '点击效果器即加到队尾；也可以直接把效果器拖到链上任意间隙插入。';
+    insertHint.textContent = t('点击效果器即加到队尾；也可以直接把效果器拖到链上任意间隙插入。');
   } else {
     const spec = getFxSpec(sel.id);
-    insertHint.textContent = `将插入到「${spec?.name ?? sel.id}」${
-      insertPos === 'before' ? '之前' : '之后'
-    }；也可以直接把效果器拖到链上任意间隙插入。`;
+    insertHint.textContent = t('将插入到「{n0}」{n1}；也可以直接把效果器拖到链上任意间隙插入。', { n0: spec ? fxName(spec) : sel.id, n1: t(insertPos === 'before' ? '之前' : '之后') });
   }
 }
 renderInsertHint();
@@ -337,14 +338,14 @@ for (const cat of FX_CATEGORY_ORDER) {
   if (!specs.length) continue;
   const group = el('div', 'fx-lib-group');
   const label = el('div', 'fx-row-label');
-  label.textContent = FX_CATEGORY_LABEL[cat];
+  label.textContent = fxCategoryLabel(cat);
   const items = el('div', 'fx-lib-items');
   for (const spec of specs) {
-    const chip = el('button', 'fx-chip', { type: 'button', title: spec.blurb });
+    const chip = el('button', 'fx-chip', { type: 'button', title: fxBlurb(spec) });
     const mono = el('span', 'mono');
     mono.textContent = spec.code;
     const name = el('span');
-    name.textContent = spec.name;
+    name.textContent = fxName(spec);
     chip.append(mono, name);
     chip.addEventListener('click', () => addBlock(spec.id));
     /* 拖到链上任意位置插入，不必只能加到队尾 */
@@ -367,10 +368,10 @@ workarea.appendChild(library.el);
 /* 侧栏                                                                */
 /* ------------------------------------------------------------------ */
 
-const sidebar = el('aside', 'sidebar', { 'aria-label': '工具面板' });
+const sidebar = el('aside', 'sidebar', { 'aria-label': t('工具面板') });
 
 /* 调音器 */
-const tunerPanel = createPanel({ title: '调音器', code: 'TUNE' });
+const tunerPanel = createPanel({ title: t('调音器'), code: 'TUNE' });
 const tunerWrap = el('div', 'tuner');
 const tunerNote = el('div', 'tuner-note', { 'data-state': 'idle' });
 tunerNote.textContent = '—';
@@ -382,9 +383,9 @@ const needleCenter = el('div', 'tuner-needle-center');
 const needleMark = el('div', 'tuner-needle-mark');
 tunerNeedle.append(needleTrack, needleCenter, needleMark);
 const tunerCents = el('div', 'tuner-cents mono');
-tunerCents.textContent = '等待信号…';
+tunerCents.textContent = t('等待信号…');
 const tunerRef = createKnob({
-  label: 'A4 基准',
+  label: t('A4 基准'),
   min: 415,
   max: 466,
   step: 0.5,
@@ -398,7 +399,7 @@ const tunerRef = createKnob({
   },
 });
 const tunerToggle = createToggle({
-  label: '启用调音器',
+  label: t('启用调音器'),
   checked: true,
   onChange: () => undefined,
 });
@@ -407,17 +408,17 @@ tunerPanel.body.appendChild(tunerWrap);
 sidebar.appendChild(tunerPanel.el);
 
 /* 节拍器 */
-const metroPanel = createPanel({ title: '节拍器', code: 'MET' });
+const metroPanel = createPanel({ title: t('节拍器'), code: 'MET' });
 const metroBody = el('div');
 metroBody.style.display = 'flex';
 metroBody.style.flexDirection = 'column';
 metroBody.style.gap = '12px';
 const metroBtn = el('button', 'btn', { type: 'button', 'data-variant': 'primary' });
-metroBtn.textContent = '启动节拍器';
-const metroBeat = createLed('拍', 'amber');
+metroBtn.textContent = t('启动节拍器');
+const metroBeat = createLed(t('拍'), 'amber');
 const metroKnobs = el('div', 'knob-grid');
 const bpmKnob = createKnob({
-  label: '速度 BPM',
+  label: t('速度 BPM'),
   min: 40,
   max: 220,
   step: 1,
@@ -431,7 +432,7 @@ const bpmKnob = createKnob({
   },
 });
 const beatsKnob = createKnob({
-  label: '拍号',
+  label: t('拍号'),
   min: 1,
   max: 12,
   step: 1,
@@ -444,7 +445,7 @@ const beatsKnob = createKnob({
   },
 });
 const metroVol = createKnob({
-  label: '音量',
+  label: t('音量'),
   min: 0,
   max: 1,
   step: 0.01,
@@ -467,34 +468,34 @@ metroPanel.body.appendChild(metroBody);
 sidebar.appendChild(metroPanel.el);
 
 /* 循环录音 */
-const loopPanel = createPanel({ title: '循环录音', code: 'LOOP' });
+const loopPanel = createPanel({ title: t('循环录音'), code: 'LOOP' });
 const loopBody = el('div');
 loopBody.style.display = 'flex';
 loopBody.style.flexDirection = 'column';
 loopBody.style.gap = '10px';
 const loopHint = el('p', 'panel-hint');
-loopHint.textContent = '按设定的小节数录一层，自动无缝循环；可多次叠加。';
+loopHint.textContent = t('按设定的小节数录一层，自动无缝循环；可多次叠加。');
 const loopRow = el('div');
 loopRow.style.display = 'flex';
 loopRow.style.gap = '8px';
 loopRow.style.flexWrap = 'wrap';
 const loopBars = createSelect({
-  label: '循环长度',
+  label: t('循环长度'),
   value: '4',
-  options: [1, 2, 4, 8, 16].map((n) => ({ value: String(n), label: `${n} 小节` })),
+  options: [1, 2, 4, 8, 16].map((n) => ({ value: String(n), label: t('{n0} 小节', { n0: n }) })),
 });
 const loopArmBtn = el('button', 'btn', { type: 'button', 'data-variant': 'primary' });
-loopArmBtn.textContent = '开始循环录音';
+loopArmBtn.textContent = t('开始循环录音');
 const loopStopBtn = el('button', 'btn', { type: 'button' });
-loopStopBtn.textContent = '停止并循环';
+loopStopBtn.textContent = t('停止并循环');
 loopStopBtn.disabled = true;
 const loopClearBtn = el('button', 'btn', { type: 'button' });
-loopClearBtn.textContent = '清空';
+loopClearBtn.textContent = t('清空');
 loopClearBtn.disabled = true;
 const loopStatus = el('div', 'rec-status');
 const loopDot = el('span', 'rec-dot', { 'data-rec': 'false' });
 const loopText = el('span');
-loopText.textContent = '未录制';
+loopText.textContent = t('未录制');
 loopStatus.append(loopDot, loopText);
 const loopList = el('div', 'rec-list');
 loopRow.append(loopArmBtn, loopStopBtn, loopClearBtn);
@@ -503,16 +504,16 @@ loopPanel.body.appendChild(loopBody);
 sidebar.appendChild(loopPanel.el);
 
 /* 录音机 */
-const recPanel = createPanel({ title: '录音机', code: 'REC' });
+const recPanel = createPanel({ title: t('录音机'), code: 'REC' });
 const recBody = el('div', 'recorder');
 const recControls = el('div', 'rec-controls');
 const recBtn = el('button', 'btn', { type: 'button', 'data-variant': 'primary' });
-recBtn.textContent = '开始录音';
+recBtn.textContent = t('开始录音');
 const recPlayBtn = el('button', 'btn', { type: 'button' });
-recPlayBtn.textContent = '播放';
+recPlayBtn.textContent = t('播放');
 recPlayBtn.disabled = true;
 const recClearBtn = el('button', 'btn', { type: 'button' });
-recClearBtn.textContent = '清空列表';
+recClearBtn.textContent = t('清空列表');
 recClearBtn.disabled = true;
 recControls.append(recBtn, recPlayBtn, recClearBtn);
 const recStatus = el('div', 'rec-status');
@@ -522,20 +523,36 @@ recTime.textContent = '00:00';
 recStatus.append(recDot, recTime);
 const recList = el('div', 'rec-list');
 const recEmpty = el('div', 'empty-note');
-recEmpty.textContent = '暂无录音文件';
+recEmpty.textContent = t('暂无录音文件');
 recList.appendChild(recEmpty);
 recBody.append(recControls, recStatus, recList);
 recPanel.body.appendChild(recBody);
 sidebar.appendChild(recPanel.el);
 
 /* 输入与设备 */
-const ioPanel = createPanel({ title: '输入与设备', code: 'I/O', collapsible: true });
+/* 语言选择：首次打开按浏览器语言探测，之后记住用户的选择 */
+const langSeg = createSegmented({
+  label: t('语言'),
+  options: LOCALES.map((l) => ({ value: l.id, label: l.native })),
+  value: getLocale(),
+  onChange: (v) => setLocale(v as Locale),
+});
+const langHint = el('p', 'panel-hint lang-hint');
+const renderLangHint = (): void => {
+  const nav = typeof navigator !== 'undefined' ? navigator.language : '';
+  langHint.textContent = t('首次打开时按浏览器语言自动选择；切换后会被记住。当前浏览器语言：{n0}', { n0: nav || '—' });
+};
+renderLangHint();
+
+const ioPanel = createPanel({ title: t('输入与设备'), code: 'I/O', collapsible: true });
 const ioBody = el('div');
 ioBody.style.display = 'flex';
 ioBody.style.flexDirection = 'column';
 ioBody.style.gap = '12px';
+ioBody.append(langSeg.el, langHint);
+
 const trimKnob = createKnob({
-  label: '输入微调',
+  label: t('输入微调'),
   min: -20,
   max: 20,
   step: 0.5,
@@ -565,11 +582,11 @@ async function reacquireInput(): Promise<void> {
       autoGainControl: s.input.autoGainControl,
     });
   } catch (err) {
-    toast(`重新获取麦克风失败：${err instanceof Error ? err.message : String(err)}`, 'error');
+    toast(t('重新获取麦克风失败：{n0}', { n0: err instanceof Error ? err.message : String(err) }), 'error');
   }
 }
 const ecToggle = createToggle({
-  label: '回声消除（用扬声器放音时务必开启）',
+  label: t('回声消除（用扬声器放音时务必开启）'),
   checked: S().input.echoCancellation,
   onChange: (c) => {
     store.setState((p) => ({ ...p, input: { ...p.input, echoCancellation: c } }));
@@ -579,7 +596,7 @@ const ecToggle = createToggle({
   },
 });
 const nsToggle = createToggle({
-  label: '浏览器降噪（人声建议开启）',
+  label: t('浏览器降噪（人声建议开启）'),
   checked: S().input.noiseSuppression,
   onChange: (c) => {
     store.setState((p) => ({ ...p, input: { ...p.input, noiseSuppression: c } }));
@@ -588,7 +605,7 @@ const nsToggle = createToggle({
   },
 });
 const agcToggle = createToggle({
-  label: '自动增益控制（建议关闭，会放大啸叫）',
+  label: t('自动增益控制（建议关闭，会放大啸叫）'),
   checked: S().input.autoGainControl,
   onChange: (c) => {
     store.setState((p) => ({ ...p, input: { ...p.input, autoGainControl: c } }));
@@ -605,21 +622,21 @@ togglesWrap.append(ecToggle.el, nsToggle.el, agcToggle.el);
 const INPUT_PROFILES = [
   {
     id: 'antifeedback',
-    label: '防啸叫优先',
-    title: '开回声消除 + 浏览器降噪，关自动增益。用扬声器放音时用这个',
+    label: t('防啸叫优先'),
+    title: t('开回声消除 + 浏览器降噪，关自动增益。用扬声器放音时用这个'),
     constraints: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
   },
   {
     id: 'quality',
-    label: '音质优先',
-    title: '全部关闭，拿最原始的输入信号。戴耳机弹吉他 / 贝斯时用这个',
+    label: t('音质优先'),
+    title: t('全部关闭，拿最原始的输入信号。戴耳机弹吉他 / 贝斯时用这个'),
     constraints: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
   },
 ] as const;
 
 const profileSeg = createSegmented({
-  label: '采集处理预设',
-  options: INPUT_PROFILES.map((p) => ({ value: p.id, label: p.label })),
+  label: t('采集处理预设'),
+  options: INPUT_PROFILES.map((p) => ({ value: p.id, label: t(p.label) })),
   value: 'antifeedback',
   onChange: (id) => {
     const prof = INPUT_PROFILES.find((p) => p.id === id);
@@ -631,10 +648,10 @@ const profileSeg = createSegmented({
     renderFeedbackWarning();
     renderProfileHint();
     void reacquireInput();
-    toast(`采集处理已切换为「${prof.label}」`, 'info');
+    toast(t('采集处理已切换为「{n0}」', { n0: t(prof.label) }), 'info');
   },
 });
-profileSeg.el.title = '切换浏览器对麦克风的处理程度';
+profileSeg.el.title = t('切换浏览器对麦克风的处理程度');
 const profileHint = el('p', 'panel-hint profile-hint');
 function renderProfileHint(): void {
   const s = S().input;
@@ -645,7 +662,7 @@ function renderProfileHint(): void {
       p.constraints.autoGainControl === s.autoGainControl,
   );
   profileSeg.setValue(hit?.id ?? '');
-  profileHint.textContent = hit ? hit.title : '当前是自定义组合：上面三个开关可以单独调。';
+  profileHint.textContent = hit ? hit.title : t('当前是自定义组合：上面三个开关可以单独调。');
 }
 renderProfileHint();
 
@@ -657,7 +674,7 @@ function renderFeedbackWarning(): void {
   const ec = S().input.echoCancellation;
   fbWarn.textContent = ec
     ? ''
-    : '⚠ 回声消除已关闭：若用扬声器放音，麦克风会拾取音箱输出，形成越拖越长的回声或啸叫。请改用耳机，或重新打开「回声消除」。';
+    : t('⚠ 回声消除已关闭：若用扬声器放音，麦克风会拾取音箱输出，形成越拖越长的回声或啸叫。请改用耳机，或重新打开「回声消除」。');
   fbWarn.hidden = !ec ? false : true;
 }
 const testRow = el('div');
@@ -665,7 +682,7 @@ testRow.style.display = 'flex';
 testRow.style.flexDirection = 'column';
 testRow.style.gap = '8px';
 const testModeSeg = createSegmented({
-  label: '测试音源',
+  label: t('测试音源'),
   value: S().input.testMode,
   options: [0, 1, 2, 3, 4].map((v) => ({ value: v, label: testToneModeLabel(v) })),
   onChange: (v) => {
@@ -675,7 +692,7 @@ const testModeSeg = createSegmented({
   },
 });
 const testLevel = createSlider({
-  label: '测试音源电平',
+  label: t('测试音源电平'),
   min: 0,
   max: 1,
   step: 0.01,
@@ -689,7 +706,7 @@ const testLevel = createSlider({
 testRow.append(testModeSeg.el, testLevel.el);
 const ioHint = el('p', 'panel-hint');
 ioHint.textContent =
-  '耳机线 / USB 声卡：在「输出设备」里选择对应接口即可。若列表中没有，请在系统声音设置里确认设备已被识别。追求最低延迟时，建议在 USB 声卡上做硬件直连监听。';
+  t('耳机线 / USB 声卡：在「输出设备」里选择对应接口即可。若列表中没有，请在系统声音设置里确认设备已被识别。追求最低延迟时，建议在 USB 声卡上做硬件直连监听。');
 
 /* 设备列表状态：签名用于比对是否真的变了，masked 表示名称被浏览器抹掉 */
 let deviceSig = '';
@@ -701,7 +718,7 @@ const DEVICE_POLL_MS = 2500;
 const deviceHint = el('div', 'device-hint');
 const deviceHintText = el('p', 'panel-hint');
 const deviceHintBtn = el('button', 'btn btn-sm', { type: 'button' });
-deviceHintBtn.textContent = '授权并刷新设备列表';
+deviceHintBtn.textContent = t('授权并刷新设备列表');
 deviceHintBtn.addEventListener('click', () => void unlockDeviceLabels());
 deviceHint.append(deviceHintText, deviceHintBtn);
 
@@ -709,13 +726,13 @@ function renderDeviceHint(): void {
   const show = deviceMasked;
   deviceHint.classList.toggle('hidden', !show);
   deviceHintText.textContent = show
-    ? '浏览器在授权麦克风前不会透露设备名称，列表里因此只有「输入设备 1/2/3」。点右侧按钮授权一次即可显示真实名称，之后打开网页会自动带上名称。'
+    ? t('浏览器在授权麦克风前不会透露设备名称，列表里因此只有「输入设备 1/2/3」。点右侧按钮授权一次即可显示真实名称，之后打开网页会自动带上名称。')
     : '';
 }
 
 renderDeviceHint();
 const fbToggle = createToggle({
-  label: '反馈抑制（自动凿掉啸叫频率）',
+  label: t('反馈抑制（自动凿掉啸叫频率）'),
   checked: S().feedbackGuard,
   onChange: (c) => {
     store.setState((p) => ({ ...p, feedbackGuard: c }));
@@ -732,13 +749,13 @@ const guardStatus = el('p', 'panel-hint guard-status');
 guardStatus.setAttribute('role', 'status');
 function renderGuardStatus(st: { count: number; freqs: number[] }): void {
   if (!S().feedbackGuard) {
-    guardStatus.textContent = '已停用';
+    guardStatus.textContent = t('已停用');
   } else if (st.count === 0) {
-    guardStatus.textContent = '监测中 · 暂无啸叫频率';
+    guardStatus.textContent = t('监测中 · 暂无啸叫频率');
   } else {
-    guardStatus.textContent = `已压制 ${st.count} 个频率：${st.freqs
+    guardStatus.textContent = t('已压制 {n0} 个频率：{n1}', { n0: st.count, n1: st.freqs
       .map((f) => `${(f / 1000).toFixed(2)} kHz`)
-      .join(' / ')}`;
+      .join(' / ') });
   }
   renderEchoShield();
 }
@@ -755,7 +772,7 @@ const WET_WARN = 0.4; // 混响/延迟湿声上限
 
 const echoShield = el('div', 'echo-shield');
 const shieldHead = el('div', 'echo-shield-head');
-shieldHead.textContent = '回声防护';
+shieldHead.textContent = t('回声防护');
 const shieldList = el('ul', 'echo-shield-list');
 const shieldNote = el('p', 'echo-shield-note');
 echoShield.append(shieldHead, shieldList, shieldNote);
@@ -772,7 +789,7 @@ function shieldRow(ok: boolean, label: string, fix?: () => void): void {
   li.append(dot, text);
   if (fix) {
     const btn = el('button', 'btn btn-xs', { type: 'button' });
-    btn.textContent = '修复';
+    btn.textContent = t('修复');
     btn.addEventListener('click', fix);
     li.append(btn);
   }
@@ -784,26 +801,26 @@ function renderEchoShield(): void {
   clear(shieldList);
   clear(shieldNote);
 
-  shieldRow(s.input.echoCancellation, s.input.echoCancellation ? '浏览器回声消除 · 已开启' : '浏览器回声消除 · 已关闭（用扬声器放音会拾回自己的声音）');
-  shieldRow(s.feedbackGuard, s.feedbackGuard ? `反馈抑制 · ${guardStatus.textContent}` : '反馈抑制 · 已关闭（窄带啸叫不会自动被凿掉）');
+  shieldRow(s.input.echoCancellation, s.input.echoCancellation ? t('浏览器回声消除 · 已开启') : t('浏览器回声消除 · 已关闭（用扬声器放音会拾回自己的声音）'));
+  shieldRow(s.feedbackGuard, s.feedbackGuard ? t('反馈抑制 · {n0}', { n0: guardStatus.textContent }) : t('反馈抑制 · 已关闭（窄带啸叫不会自动被凿掉）'));
 
   const gate = chainBlock('noise-gate');
   if (gate) {
     const th = gate.params.threshold as number;
     if (gate.bypassed) {
-      shieldRow(false, '噪声门 · 已旁通（没有东西能切断持续回声）', () => toggleBypass(gate.uid));
+      shieldRow(false, t('噪声门 · 已旁通（没有东西能切断持续回声）'), () => toggleBypass(gate.uid));
     } else if (th > GATE_WARN_DB) {
       shieldRow(
         false,
-        `噪声门 · 阈值 ${th.toFixed(0)} dB 太高，门几乎不会关闭，挡不住回声`,
+        t('噪声门 · 阈值 {n0} dB 太高，门几乎不会关闭，挡不住回声', { n0: th.toFixed(0) }),
         () => {
           setBlockParam(gate.uid, 'threshold', GATE_SAFE_DB);
           renderFxPanel();
-          toast(`噪声门阈值已设为 ${GATE_SAFE_DB} dB`, 'info');
+          toast(t('噪声门阈值已设为 {n0} dB', { n0: GATE_SAFE_DB }), 'info');
         },
       );
     } else {
-      shieldRow(true, `噪声门 · 阈值 ${th.toFixed(0)} dB，就绪`);
+      shieldRow(true, t('噪声门 · 阈值 {n0} dB，就绪', { n0: th.toFixed(0) }));
     }
   }
 
@@ -814,11 +831,11 @@ function renderEchoShield(): void {
     if (!b || b.bypassed) continue;
     const wet = b.params.wet as number;
     if (wet > WET_WARN) {
-      wetNotes.push(`${getFxSpec(id)?.name ?? id} 湿声 ${Math.round(wet * 100)}%`);
+      wetNotes.push(t('{n0} 湿声 {n1}%', { n0: (() => { const sp = getFxSpec(id); return sp ? fxName(sp) : id; })(), n1: Math.round(wet * 100) }));
     }
   }
   if (wetNotes.length > 0) {
-    shieldNote.textContent = `⚠ ${wetNotes.join('、')}：湿声会被扬声器→麦克风拾回，形成越拖越长的回声。建议降到 40% 以下，或改用耳机。`;
+    shieldNote.textContent = t('⚠ {n0}：湿声会被扬声器→麦克风拾回，形成越拖越长的回声。建议降到 40% 以下，或改用耳机。', { n0: wetNotes.join('、') });
   }
 }
 
@@ -842,68 +859,72 @@ ioPanel.body.appendChild(ioBody);
 sidebar.appendChild(ioPanel.el);
 
 /* 使用说明 */
-const helpPanel = createPanel({ title: '使用说明', code: 'HELP', collapsible: true, startCollapsed: true });
-const helpBody = el('div', 'help-body');
-helpBody.innerHTML = `
+const helpPanel = createPanel({ title: t('使用说明'), code: 'HELP', collapsible: true, startCollapsed: true });
+/** 键帽标签；文案走 t()，切语言后一起变 */
+const kbd = (key: string): string => `<span class="kbd">${t(key)}</span>`;
+
+/** 帮助面板内容——按当前语言重绘。
+ *  内联标签（<b>、键帽）用 {b} {/b} {k1} 占位，译文可以按各自语序摆放。 */
+function renderHelp(): string {
+  return `
   <div>
-    <h4>快速开始</h4>
+    <h4>${t('快速开始')}</h4>
     <ol>
-      <li>点击左上角 <b>电源</b> 开启，浏览器会请求麦克风权限，请选择「允许」。</li>
-      <li>在「音源类型」里选择麦克风 / 标签页音频 / 内置测试音源。</li>
-      <li>选择「输出设备」为耳机线或 USB 声卡，戴上耳机监听。</li>
-      <li>点击信号链里的模块编辑参数，点灯或右键可旁通该模块。</li>
-      <li>也可以<b>直接拖着模块在链上换位置</b>——比如把混响拖到音箱前面，松手即生效。</li>
-      <li><b>插到中间</b>：从「效果器仓库」里把效果器直接拖到链上任意间隙，落点有竖线提示；
-        或者用仓库顶部的「插入位置」（所选前 / 所选后 / 队尾）再点效果器。</li>
-      <li>旁通：点模块上的小绿灯、右键、或<b>长按模块</b>（手机上用长按，因为没法右键）。</li>
+      <li>${t('点击左上角 {b}电源{/b} 开启，浏览器会请求麦克风权限，请选择「允许」。', { b: '<b>', '/b': '</b>' })}</li>
+      <li>${t('在「音源类型」里选择麦克风 / 标签页音频 / 内置测试音源。')}</li>
+      <li>${t('选择「输出设备」为耳机线或 USB 声卡，戴上耳机监听。')}</li>
+      <li>${t('点击信号链里的模块编辑参数，点灯或右键可旁通该模块。')}</li>
+      <li>${t('界面语言：右栏「输入与设备」面板顶部可以切换 9 种语言，首次打开会按浏览器语言自动选择。')}</li>
+      <li>${t('也可以{b}直接拖着模块在链上换位置{/b}——比如把混响拖到音箱前面，松手即生效。', { b: '<b>', '/b': '</b>' })}</li>
+      <li>${t('{b}插到中间{/b}：从「效果器仓库」里把效果器直接拖到链上任意间隙，落点有竖线提示；或者用仓库顶部的「插入位置」（所选前 / 所选后 / 队尾）再点效果器。', { b: '<b>', '/b': '</b>' })}</li>
+      <li>${t('旁通：点模块上的小绿灯、右键、或{b}长按模块{/b}（手机上用长按，因为没法右键）。', { b: '<b>', '/b': '</b>' })}</li>
     </ol>
   </div>
   <div>
-    <h4>关于啸叫与回声</h4>
-    <p>扬声器放出的声音被麦克风拾回、再放大输出，就会形成越拖越长的回声，最终变成啸叫。三层防护：</p>
+    <h4>${t('关于啸叫与回声')}</h4>
+    <p>${t('扬声器放出的声音被麦克风拾回、再放大输出，就会形成越拖越长的回声，最终变成啸叫。三层防护：')}</p>
     <ul>
-      <li><b>戴耳机</b>——最彻底，声音根本不回到麦克风。</li>
-      <li><b>开启「回声消除」</b>——浏览器用扬声器信号做参考，从麦克风里减掉它，效果最好。</li>
-      <li><b>开启「反馈抑制」</b>——持续监测输入频谱，发现又窄又亮又持续的单峰就自动在该频率凿一道浅凹槽；
-        频率消失约 2 秒后凹槽自动恢复，不会在音色上留疤痕。面板里能看到当前压制了哪些频率。</li>
+      <li>${t('{b}戴耳机{/b}——最彻底，声音根本不回到麦克风。', { b: '<b>', '/b': '</b>' })}</li>
+      <li>${t('{b}开启「回声消除」{/b}——浏览器用扬声器信号做参考，从麦克风里减掉它，效果最好。', { b: '<b>', '/b': '</b>' })}</li>
+      <li>${t('{b}开启「反馈抑制」{/b}——持续监测输入频谱，发现又窄又亮又持续的单峰就自动在该频率凿一道浅凹槽；频率消失约 2 秒后凹槽自动恢复，不会在音色上留疤痕。面板里能看到当前压制了哪些频率。', { b: '<b>', '/b': '</b>' })}</li>
     </ul>
-    <p>另外建议关闭「自动增益控制」：它会把安静的反馈残余一起放大，更容易起振。</p>
-    <p><b>「输入与设备」面板顶部的「回声防护」检查表会实时盯着这三层。</b>任何一层配错都会标红并说清原因，
-    多数情况旁边就有「修复」按钮。最常见的两种配错：噪声门阈值被拖到 0 dB 以上（门永远开着，什么都挡不住），
-    以及混响 / 延迟湿声开得太大（湿声被扬声器→麦克风拾回，越拖越长）。</p>
+    <p>${t('另外建议关闭「自动增益控制」：它会把安静的反馈残余一起放大，更容易起振。')}</p>
+    <p>${t('{b}「输入与设备」面板顶部的「回声防护」检查表会实时盯着这三层。{/b}任何一层配错都会标红并说清原因，多数情况旁边就有「修复」按钮。最常见的两种配错：噪声门阈值被拖到 0 dB 以上（门永远开着，什么都挡不住），以及混响 / 延迟湿声开得太大（湿声被扬声器→麦克风拾回，越拖越长）。', { b: '<b>', '/b': '</b>' })}</p>
   </div>
   <div>
-    <h4>关于噪声门</h4>
-    <p>噪声门是整条链的第一级：当输入低于「阈值」时按「衰减深度」压低，信号回来时按「开启」时间平滑放开，
-    「保持」可以避免音符之间的正常停顿被误切。吉他 / 贝斯建议阈值 -45 dB 左右，人声可到 -50 dB。</p>
+    <h4>${t('关于噪声门')}</h4>
+    <p>${t('噪声门是整条链的第一级：当输入低于「阈值」时按「衰减深度」压低，信号回来时按「开启」时间平滑放开，「保持」可以避免音符之间的正常停顿被误切。吉他 / 贝斯建议阈值 -45 dB 左右，人声可到 -50 dB。')}</p>
   </div>
   <div>
-    <h4>手机 / 平板</h4>
+    <h4>${t('手机 / 平板')}</h4>
     <ul>
-      <li>窄屏下三个设备下拉会自动排成两列；所有可点区域都做到了 44 px 以上。</li>
-      <li>效果器的排序：桌面端直接拖着盒子在链上换位置；触摸端 HTML5 拖放不生效，
-        改用盒子上的 <b>▲ / ▼</b> 按钮（仅在触摸或窄屏下显示）。</li>
-      <li>插到链中间：从仓库把效果器拖到链上任意间隙；或先用仓库顶部的「插入位置」选好，再点效果器。</li>
-      <li>旁通模块：点小绿灯，或<b>长按模块 0.5 秒</b>（手机上用长按代替右键）。</li>
-      <li>链很长时左右滑动查看，头部有「← 左右滑动查看整条链 →」提示。</li>
-      <li>旋钮 / 推子用指针事件，触摸拖动顺滑，且不会连带滚动页面。</li>
+      <li>${t('窄屏下三个设备下拉会自动排成两列；所有可点区域都做到了 44 px 以上。')}</li>
+      <li>${t('效果器的排序：桌面端直接拖着盒子在链上换位置；触摸端 HTML5 拖放不生效，改用盒子上的 {b}▲ / ▼{/b} 按钮（仅在触摸或窄屏下显示）。', { b: '<b>', '/b': '</b>' })}</li>
+      <li>${t('插到链中间：从仓库把效果器拖到链上任意间隙；或先用仓库顶部的「插入位置」选好，再点效果器。')}</li>
+      <li>${t('旁通模块：点小绿灯，或{b}长按模块 0.5 秒{/b}（手机上用长按代替右键）。', { b: '<b>', '/b': '</b>' })}</li>
+      <li>${t('链很长时左右滑动查看，头部有「← 左右滑动查看整条链 →」提示。')}</li>
+      <li>${t('旋钮 / 推子用指针事件，触摸拖动顺滑，且不会连带滚动页面。')}</li>
     </ul>
-    <h4>键盘快捷键</h4>
+    <h4>${t('键盘快捷键')}</h4>
     <ul>
-      <li><span class="kbd">空格</span> 电源开关　<span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span><span class="kbd">4</span> 切换模式</li>
-      <li><span class="kbd">M</span> 节拍器　<span class="kbd">R</span> 录音　<span class="kbd">B</span> 旁通当前模块</li>
-      <li>旋钮：上下拖动调节，<span class="kbd">Shift</span> 微调，滚轮微调，双击复位</li>
+      <li>${t('{k1} 电源开关　{k2}{k3}{k4}{k5} 切换模式', { k1: kbd('空格'), k2: kbd('1'), k3: kbd('2'), k4: kbd('3'), k5: kbd('4') })}</li>
+      <li>${t('{k1} 节拍器　{k2} 录音　{k3} 旁通当前模块', { k1: kbd('M'), k2: kbd('R'), k3: kbd('B') })}</li>
+      <li>${t('旋钮：上下拖动调节，{k1} 微调，滚轮微调，双击复位', { k1: kbd('Shift') })}</li>
     </ul>
   </div>
   <div>
-    <h4>注意事项</h4>
+    <h4>${t('注意事项')}</h4>
     <ul>
-      <li>戴耳机使用，避免麦克风正对扬声器产生啸叫。</li>
-      <li>录音文件保存在浏览器内存中，刷新页面后会清空。</li>
-      <li>所有参数与预设自动保存在本地 localStorage。</li>
+      <li>${t('戴耳机使用，避免麦克风正对扬声器产生啸叫。')}</li>
+      <li>${t('录音文件保存在浏览器内存中，刷新页面后会清空。')}</li>
+      <li>${t('所有参数与预设自动保存在本地 localStorage。')}</li>
     </ul>
   </div>
 `;
+}
+
+const helpBody = el('div', 'help-body');
+helpBody.innerHTML = renderHelp();
 helpPanel.body.appendChild(helpBody);
 sidebar.appendChild(helpPanel.el);
 
@@ -915,14 +936,27 @@ const sbMode = el('span');
 const sbChain = el('span');
 const sbPreset = el('span');
 const sbHint = el('span');
-sbHint.innerHTML = '提示：<span class="kbd">空格</span> 电源 · <span class="kbd">1-4</span> 模式 · <span class="kbd">M</span> 节拍器 · <span class="kbd">R</span> 录音';
+sbHint.innerHTML = t('提示：{k1} 电源 · {k2} 模式 · {k3} 节拍器 · {k4} 录音', { k1: kbd('空格'), k2: kbd('1-4'), k3: kbd('M'), k4: kbd('R') });
 statusbar.append(sbMode, sbChain, sbPreset, sbHint);
 
 const rack = el('div', 'rack');
 rack.append(header, modebar, chainbar, deckMain, statusbar);
+
 const appRoot = document.querySelector<HTMLElement>('#app');
 if (appRoot) appRoot.appendChild(rack);
 else document.body.appendChild(rack);
+
+/*
+ * 界面挂到文档后，抓一份静态文案原文（title / aria-label / 叶子节点的 textContent）。
+ * 这些文案是模块加载时赋值一次的，不在任何 render 函数里，切语言时靠这份原文重译。
+ * 必须在挂载之后抓，否则 document 里还找不到这些节点。
+ */
+captureStaticText();
+onLocaleChange(() => {
+  retranslateStaticText();
+  helpBody.innerHTML = renderHelp(); // 帮助面板是整块 innerHTML，单独重绘
+  renderAll();
+});
 
 /* ------------------------------------------------------------------ */
 /* 渲染逻辑                                                            */
@@ -954,9 +988,9 @@ function updateModeButtons(): void {
 
 function renderHero(): void {
   const info = modeInfo(currentMode());
-  heroH2.textContent = info.name;
+  heroH2.textContent = modeName(currentMode());
   heroCode.textContent = info.code;
-  heroP.textContent = info.blurb;
+  heroP.textContent = modeBlurb(currentMode());
 }
 
 function renderChain(): void {
@@ -969,11 +1003,11 @@ function renderChain(): void {
     return {
       uid: b.uid,
       id: b.id,
-      name: spec?.name ?? b.id,
+      name: spec ? fxName(spec) : b.id,
       code: spec?.code ?? '??',
       bypassed: b.bypassed,
       active: b.uid === uid,
-      status: (b.bypassed ? '' : inst?.status?.()) ?? spec?.blurb.slice(0, 10) ?? '',
+      status: (b.bypassed ? '' : inst?.status?.()) ?? (spec ? fxBlurb(spec).slice(0, 10) : ''),
     };
   });
   chainView.update(views, s.power && engine.hasInputStream);
@@ -983,19 +1017,19 @@ function renderChain(): void {
 function renderFxPanel(): void {
   const block = selectedBlock();
   if (!block) {
-    fxPanel.setTitle('效果器');
+    fxPanel.setTitle(t('效果器'));
     clear(fxPanel.body);
-    fxPanel.body.appendChild(el('div', 'empty-note')).textContent = '当前链路为空，请从「效果器仓库」添加';
+    fxPanel.body.appendChild(el('div', 'empty-note')).textContent = t('当前链路为空，请从「效果器仓库」添加');
     return;
   }
   const spec = getFxSpec(block.id);
   if (!spec) return;
-  fxPanel.setTitle(spec.name);
+  fxPanel.setTitle(fxName(spec));
   fxPanel.el.querySelector('.panel-code')?.replaceChildren(document.createTextNode(spec.code));
   clear(fxPanel.body);
 
   const blurb = el('p', 'panel-hint');
-  blurb.textContent = spec.blurb;
+  blurb.textContent = fxBlurb(spec);
   fxPanel.body.appendChild(blurb);
 
   const knobRow = el('div', 'knob-grid');
@@ -1010,11 +1044,11 @@ function renderFxPanel(): void {
       row.style.gap = '10px';
       row.style.flexWrap = 'wrap';
       const label = el('span', 'silk');
-      label.textContent = p.label;
+      label.textContent = fxParamLabel(p);
       const seg = createSegmented({
-        label: p.label,
+        label: fxParamLabel(p),
         value,
-        options: p.options,
+        options: p.options.map((o) => ({ ...o, label: fxOptionLabel(o) })),
         onChange: (v) => setBlockParam(block.uid, p.key, Number(v)),
       });
       row.append(label, seg.el);
@@ -1022,7 +1056,7 @@ function renderFxPanel(): void {
       continue;
     }
     const knob = createKnob({
-      label: p.label,
+      label: fxParamLabel(p),
       min: p.min,
       max: p.max,
       step: p.step,
@@ -1030,7 +1064,7 @@ function renderFxPanel(): void {
       default: p.default,
       scale: p.scale ?? 'linear',
       bipolar: p.min < 0 && p.max > 0,
-      format: p.format,
+      format: (v) => fxParamFormat(p, v),
       size: p.key === 'mix' ? 54 : undefined,
       onChange: (v) => setBlockParam(block.uid, p.key, v),
     });
@@ -1055,12 +1089,12 @@ function renderPresets(): void {
     const btn = el('button', 'preset-btn', {
       type: 'button',
       'aria-pressed': p.id === active ? 'true' : 'false',
-      title: p.blurb,
+      title: presetBlurb(p),
     });
     const name = el('span', 'preset-name');
-    name.textContent = p.name;
+    name.textContent = presetName(p);
     const blurb = el('span', 'preset-blurb');
-    blurb.textContent = p.blurb;
+    blurb.textContent = presetBlurb(p);
     btn.append(name, blurb);
     btn.addEventListener('click', () => applyPreset(p));
     presetGrid.appendChild(btn);
@@ -1072,12 +1106,12 @@ function renderPresets(): void {
     const btn = el('button', 'preset-btn', {
       type: 'button',
       'aria-pressed': custom ? 'true' : 'false',
-      title: custom ? '恢复上次手动调好的效果' : '把当前参数保存为自定义预设',
+      title: custom ? t('恢复上次手动调好的效果') : t('把当前参数保存为自定义预设'),
     });
     const name = el('span', 'preset-name');
-    name.textContent = '自定义';
+    name.textContent = t('自定义');
     const blurb = el('span', 'preset-blurb');
-    blurb.textContent = custom ? '点击恢复已保存的手动参数' : '点击保存当前全部参数';
+    blurb.textContent = custom ? t('点击恢复已保存的手动参数') : t('点击保存当前全部参数');
     btn.append(name, blurb);
     btn.addEventListener('click', () => {
       if (S().customVoice) applyCustomVoice();
@@ -1088,23 +1122,23 @@ function renderPresets(): void {
 
   presetHint.textContent =
     currentMode() === 'pa'
-      ? '一键套用整套变声参数；手动调节后点「自定义」可保存/恢复。'
-      : '点击预设会替换整条效果链，手动修改后预设标记为「自定义」。';
+      ? t('一键套用整套变声参数；手动调节后点「自定义」可保存/恢复。')
+      : t('点击预设会替换整条效果链，手动修改后预设标记为「自定义」。');
 }
 
 function renderStatusbar(): void {
   const info = modeInfo(currentMode());
   const mode = modeState();
   sbMode.innerHTML = '';
-  sbMode.append('模式 ');
+  sbMode.append(t('模式 '));
   sbMode.append(el('b', '', {}));
-  (sbMode.lastChild as HTMLElement).textContent = `${info.name} / ${info.code}`;
+  (sbMode.lastChild as HTMLElement).textContent = `${modeName(currentMode())} / ${info.code}`;
   sbChain.innerHTML = '';
-  sbChain.append('链路 ');
+  sbChain.append(t('链路 '));
   sbChain.append(el('b', '', {}));
-  (sbChain.lastChild as HTMLElement).textContent = `${mode.blocks.length} 级`;
+  (sbChain.lastChild as HTMLElement).textContent = t('{n0} 级', { n0: mode.blocks.length });
   sbPreset.innerHTML = '';
-  sbPreset.append('预设 ');
+  sbPreset.append(t('预设 '));
   sbPreset.append(el('b', '', {}));
   (sbPreset.lastChild as HTMLElement).textContent = mode.presetName;
 }
@@ -1119,6 +1153,7 @@ function renderAll(): void {
   renderStatusStrip();
   renderEchoShield();
   renderInsertHint();
+  renderLangHint();
 }
 
 /* ------------------------------------------------------------------ */
@@ -1152,7 +1187,7 @@ function setBlockParam(uid: string, key: string, value: number): void {
   );
   store.setState((p) => ({
     ...p,
-    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, presetId: null, presetName: '自定义' } },
+    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, presetId: null, presetName: t('自定义') } },
   }));
   if (chainReady) chain.setParam(uid, key, value);
   renderChain();
@@ -1181,13 +1216,13 @@ function insertBlock(fxId: string, index: number): void {
   blocks.splice(at, 0, block);
   store.setState((p) => ({
     ...p,
-    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, selectedUid: block.uid, presetName: '自定义' } },
+    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, selectedUid: block.uid, presetName: t('自定义') } },
   }));
   rebuildChain();
   renderAll();
   const spec = getFxSpec(fxId);
-  const pos = at === blocks.length ? '队尾' : `第 ${at + 1} 级`;
-  toast(`「${spec?.name ?? fxId}」已插入${pos}`, 'info');
+  const pos = at === blocks.length ? t('队尾') : t('第 {n0} 级', { n0: at + 1 });
+  toast(t('「{n0}」已插入{n1}', { n0: spec ? fxName(spec) : fxId, n1: pos }), 'info');
 }
 
 function addBlock(fxId: string): void {
@@ -1205,7 +1240,7 @@ function addBlock(fxId: string): void {
   blocks.splice(at, 0, block);
   store.setState((p) => ({
     ...p,
-    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, selectedUid: block.uid, presetName: '自定义' } },
+    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, selectedUid: block.uid, presetName: t('自定义') } },
   }));
   rebuildChain();
   renderAll();
@@ -1219,7 +1254,7 @@ function removeBlock(uid: string): void {
     ...p,
     modes: {
       ...p.modes,
-      [p.mode]: { ...p.modes[p.mode], blocks, selectedUid: blocks[0].uid, presetName: '自定义' },
+      [p.mode]: { ...p.modes[p.mode], blocks, selectedUid: blocks[0].uid, presetName: t('自定义') },
     },
   }));
   rebuildChain();
@@ -1238,7 +1273,7 @@ function moveBlock(uid: string, dir: -1 | 1): void {
   blocks.splice(j, 0, item);
   store.setState((p) => ({
     ...p,
-    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, presetName: '自定义' } },
+    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, presetName: t('自定义') } },
   }));
   rebuildChain();
   renderFxPanel();
@@ -1255,12 +1290,12 @@ function reorderBlock(fromUid: string, toUid: string, before: boolean): void {
   blocks.splice(before ? to : to + 1, 0, moved);
   store.setState((p) => ({
     ...p,
-    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, presetName: '自定义' } },
+    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, presetName: t('自定义') } },
   }));
   rebuildChain();
   renderAll();
   const spec = getFxSpec(moved.id);
-  toast(`「${spec?.name ?? moved.id}」已移到新位置`, 'info');
+  toast(t('「{n0}」已移到新位置', { n0: spec ? fxName(spec) : moved.id }), 'info');
 }
 
 function duplicateBlock(uid: string): void {
@@ -1273,7 +1308,7 @@ function duplicateBlock(uid: string): void {
   blocks.splice(i + 1, 0, copy);
   store.setState((p) => ({
     ...p,
-    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, selectedUid: copy.uid, presetName: '自定义' } },
+    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, selectedUid: copy.uid, presetName: t('自定义') } },
   }));
   rebuildChain();
   renderFxPanel();
@@ -1291,7 +1326,7 @@ function resetBlockParams(uid: string): void {
   });
   store.setState((p) => ({
     ...p,
-    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, presetName: '自定义' } },
+    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, presetName: t('自定义') } },
   }));
   rebuildChain();
   renderFxPanel();
@@ -1304,14 +1339,14 @@ function applyPreset(preset: ChainPreset): void {
     ...p,
     modes: {
       ...p.modes,
-      [p.mode]: { ...p.modes[p.mode], blocks, selectedUid: blocks[0].uid, presetId: preset.id, presetName: preset.name },
+      [p.mode]: { ...p.modes[p.mode], blocks, selectedUid: blocks[0].uid, presetId: preset.id, presetName: presetName(preset) },
     },
   }));
   rebuildChain();
   renderFxPanel();
   renderPresets();
   renderStatusbar();
-  toast(`已套用预设：${preset.name}`);
+  toast(t('已套用预设：{n0}', { n0: presetName(preset) }));
 }
 
 function snapshotVoice(): Record<string, Record<string, number>> {
@@ -1323,7 +1358,7 @@ function snapshotVoice(): Record<string, Record<string, number>> {
 function saveCustomVoice(): void {
   store.setState((p) => ({ ...p, customVoice: snapshotVoice() }));
   renderPresets();
-  toast('已保存为「自定义」预设');
+  toast(t('已保存为「自定义」预设'));
 }
 
 function applyCustomVoice(): void {
@@ -1335,12 +1370,12 @@ function applyCustomVoice(): void {
   }));
   store.setState((p) => ({
     ...p,
-    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, presetId: null, presetName: '自定义' } },
+    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, presetId: null, presetName: t('自定义') } },
   }));
   rebuildChain();
   renderFxPanel();
   renderPresets();
-  toast('已恢复「自定义」预设');
+  toast(t('已恢复「自定义」预设'));
 }
 
 function switchMode(mode: ModeId): void {
@@ -1372,7 +1407,7 @@ async function powerOn(): Promise<void> {
     void refreshDevices(true); // getUserMedia 已授权，此刻才拿得到真实设备名
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    toast(`无法开启音频输入：${msg}`, 'error');
+    toast(t('无法开启音频输入：{n0}', { n0: msg }), 'error');
     store.setState((p) => ({ ...p, power: false }));
   }
   syncPowerUi();
@@ -1428,12 +1463,12 @@ outputDeviceSelect.select.addEventListener('change', () => {
   const id = outputDeviceSelect.getValue();
   store.setState((p) => ({ ...p, outputDeviceId: id }));
   void engine.setOutputDevice(id).catch((e: unknown) => {
-    toast(`切换输出设备失败：${e instanceof Error ? e.message : String(e)}`, 'error');
+    toast(t('切换输出设备失败：{n0}', { n0: e instanceof Error ? e.message : String(e) }), 'error');
   });
 });
 
 engine.onStreamEnded = () => {
-  toast('音源已停止共享', 'info');
+  toast(t('音源已停止共享'), 'info');
   powerOff();
 };
 
@@ -1483,7 +1518,7 @@ async function refreshDevices(force = false): Promise<void> {
   if (s.input.deviceId && !inputs.some((d) => d.deviceId === s.input.deviceId)) {
     store.setState((p) => ({ ...p, input: { ...p.input, deviceId: '' } }));
     inputDeviceSelect.setValue('');
-    if (!first) toast('原输入设备已移除，已切换为系统默认输入', 'info');
+    if (!first) toast(t('原输入设备已移除，已切换为系统默认输入'), 'info');
   } else {
     inputDeviceSelect.setValue(s.input.deviceId);
   }
@@ -1492,7 +1527,7 @@ async function refreshDevices(force = false): Promise<void> {
     outputDeviceSelect.setValue('');
     if (!first) {
       void engine.setOutputDevice('').catch(() => undefined);
-      toast('原输出设备已移除，已切换为系统默认输出', 'info');
+      toast(t('原输出设备已移除，已切换为系统默认输出'), 'info');
     }
   } else {
     outputDeviceSelect.setValue(s.outputDeviceId);
@@ -1506,10 +1541,10 @@ async function unlockDeviceLabels(): Promise<void> {
   try {
     await engine.unlockDeviceLabels();
     await refreshDevices(true);
-    if (!deviceMasked) toast('设备列表已刷新', 'info');
+    if (!deviceMasked) toast(t('设备列表已刷新'), 'info');
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    toast(`无法获取麦克风权限：${msg}`, 'error');
+    toast(t('无法获取麦克风权限：{n0}', { n0: msg }), 'error');
   }
 }
 
@@ -1561,7 +1596,7 @@ async function startMetronome(): Promise<void> {
       beats: S().metronome.beats,
       volume: S().metronome.volume,
     });
-    metroBtn.textContent = '停止节拍器';
+    metroBtn.textContent = t('停止节拍器');
     metroBtn.dataset.variant = 'danger';
     metronome.onBeat = (beat) => {
       metroBeat.setOn(true);
@@ -1575,7 +1610,7 @@ async function startMetronome(): Promise<void> {
 function stopMetronome(): void {
   metronome.stop();
   metronome.onBeat = null;
-  metroBtn.textContent = '启动节拍器';
+  metroBtn.textContent = t('启动节拍器');
   metroBtn.dataset.variant = 'primary';
   metroBeat.setOn(false);
 }
@@ -1591,14 +1626,14 @@ function renderLoopList(): void {
   clear(loopList);
   const layers = loopStation.layers;
   if (!layers.length) {
-    loopList.appendChild(el('div', 'empty-note')).textContent = '还没有循环层';
+    loopList.appendChild(el('div', 'empty-note')).textContent = t('还没有循环层');
     return;
   }
   layers.forEach((layer, i) => {
     const item = el('div', 'rec-item');
     const name = el('span', 'rec-item-name');
-    name.textContent = `第 ${i + 1} 层`;
-    const del = el('button', 'btn btn-icon', { type: 'button', title: '删除该层' });
+    name.textContent = t('第 {n0} 层', { n0: i + 1 });
+    const del = el('button', 'btn btn-icon', { type: 'button', title: t('删除该层') });
     del.textContent = '✕';
     del.addEventListener('click', () => {
       loopStation.removeLayer(layer.id);
@@ -1616,13 +1651,13 @@ loopArmBtn.addEventListener('click', () => {
     loopStation.arm(bars, S().metronome.bpm, S().metronome.beats);
     loopArmBtn.disabled = true;
     loopStopBtn.disabled = false;
-    loopText.textContent = `等待第 1 个小节开始…`;
+    loopText.textContent = t('等待第 1 个小节开始…');
   });
 });
 
 loopStopBtn.addEventListener('click', () => {
   void loopStation.commit().then((layer) => {
-    if (layer) toast('已加入一层循环');
+    if (layer) toast(t('已加入一层循环'));
     loopArmBtn.disabled = false;
     loopStopBtn.disabled = true;
     loopClearBtn.disabled = loopStation.layers.length === 0;
@@ -1652,7 +1687,7 @@ function fmtTime(s: number): string {
 function renderRecList(): void {
   clear(recList);
   if (!recordings.length) {
-    recList.appendChild(el('div', 'empty-note')).textContent = '暂无录音文件';
+    recList.appendChild(el('div', 'empty-note')).textContent = t('暂无录音文件');
     return;
   }
   for (const item of recordings) {
@@ -1660,15 +1695,15 @@ function renderRecList(): void {
     const name = el('span', 'rec-item-name');
     name.textContent = `${item.name} · ${fmtTime(item.duration)}`;
     name.title = item.name;
-    const play = el('button', 'btn btn-icon', { type: 'button', title: '播放' });
+    const play = el('button', 'btn btn-icon', { type: 'button', title: t('播放') });
     play.textContent = '▶';
-    const dl = el('a', 'btn btn-icon', { href: item.url, download: `${item.name}.webm`, title: '保存到本地' });
+    const dl = el('a', 'btn btn-icon', { href: item.url, download: `${item.name}.webm`, title: t('保存到本地') });
     dl.textContent = '⤓';
-    const rm = el('button', 'btn btn-icon', { type: 'button', title: '删除' });
+    const rm = el('button', 'btn btn-icon', { type: 'button', title: t('删除') });
     rm.textContent = '✕';
     play.addEventListener('click', () => {
       const audio = new Audio(item.url);
-      void audio.play().catch(() => toast('播放失败', 'error'));
+      void audio.play().catch(() => toast(t('播放失败'), 'error'));
     });
     rm.addEventListener('click', () => {
       const i = recordings.indexOf(item);
@@ -1686,7 +1721,7 @@ recBtn.addEventListener('click', () => {
     void recorder.stop().then((item) => {
       if (item) recordings.unshift(item);
       renderRecList();
-      recBtn.textContent = '开始录音';
+      recBtn.textContent = t('开始录音');
       recBtn.dataset.variant = 'primary';
       recDot.dataset.rec = 'false';
       recPlayBtn.disabled = recordings.length === 0;
@@ -1697,21 +1732,21 @@ recBtn.addEventListener('click', () => {
     return;
   }
   if (!S().power) {
-    toast('请先开启电源再录音', 'error');
+    toast(t('请先开启电源再录音'), 'error');
     return;
   }
   try {
     recorder = new Recorder(engine.recDest.stream);
     recorder.start();
     recStart = performance.now();
-    recBtn.textContent = '停止录音';
+    recBtn.textContent = t('停止录音');
     recBtn.dataset.variant = 'danger';
     recDot.dataset.rec = 'true';
     recTimer = setInterval(() => {
       recTime.textContent = fmtTime((performance.now() - recStart) / 1000);
     }, 200) as unknown as number;
   } catch (err) {
-    toast(`录音启动失败：${err instanceof Error ? err.message : String(err)}`, 'error');
+    toast(t('录音启动失败：{n0}', { n0: err instanceof Error ? err.message : String(err) }), 'error');
   }
 });
 
@@ -1719,7 +1754,7 @@ recPlayBtn.addEventListener('click', () => {
   const first = recordings[0];
   if (!first) return;
   const audio = new Audio(first.url);
-  void audio.play().catch(() => toast('播放失败', 'error'));
+  void audio.play().catch(() => toast(t('播放失败'), 'error'));
 });
 
 recClearBtn.addEventListener('click', () => {
@@ -1770,13 +1805,13 @@ function frame(): void {
       tunerNote.textContent = `${reading.note}${reading.octave}`;
       tunerNote.dataset.state = state;
       tunerFreq.textContent = `${reading.frequency.toFixed(1)} Hz`;
-      tunerCents.textContent = `${cents > 0 ? '+' : ''}${cents.toFixed(0)} 音分`;
+      tunerCents.textContent = t('{n0}{n1} 音分', { n0: cents > 0 ? '+' : '', n1: cents.toFixed(0) });
       needleMark.style.setProperty('--rot', `${cents * 0.9}deg`);
     } else {
       tunerNote.textContent = '—';
       tunerNote.dataset.state = 'idle';
       tunerFreq.textContent = '0.0 Hz';
-      tunerCents.textContent = '等待信号…';
+      tunerCents.textContent = t('等待信号…');
       needleMark.style.setProperty('--rot', '0deg');
     }
   } else {
@@ -1785,13 +1820,13 @@ function frame(): void {
   }
 
   if (loopStation.recording) {
-    loopText.textContent = `录音中 ${Math.round(loopStation.progress * 100)}%`;
+    loopText.textContent = t('录音中 {n0}%', { n0: Math.round(loopStation.progress * 100) });
   } else if (loopStation.armed) {
-    loopText.textContent = '已待命，等下一小节开始';
+    loopText.textContent = t('已待命，等下一小节开始');
   } else if (loopStation.hasPending) {
-    loopText.textContent = '本层已录完，点「停止并循环」加入';
+    loopText.textContent = t('本层已录完，点「停止并循环」加入');
   } else if (loopStation.layers.length) {
-    loopText.textContent = `循环中 · ${loopStation.layers.length} 层`;
+    loopText.textContent = t('循环中 · {n0} 层', { n0: loopStation.layers.length });
   }
 
   requestAnimationFrame(frame);
@@ -1802,6 +1837,7 @@ function frame(): void {
 /* ------------------------------------------------------------------ */
 
 function boot(): void {
+  initI18n();
   testRow.classList.toggle('hidden', S().input.kind !== 'test');
   inputDeviceSelect.el.classList.toggle('hidden', S().input.kind === 'tab');
   renderAll();

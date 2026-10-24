@@ -9,6 +9,7 @@
  */
 
 import { paramToKnob } from '../audio/fx/util';
+import { t } from '../i18n';
 
 /* --------------------------------- 工具 --------------------------------- */
 
@@ -476,7 +477,7 @@ export interface SegmentedHandle {
 }
 
 export function createSegmented(o: SegmentedOptions): SegmentedHandle {
-  const root = el('div', 'segmented', { role: 'group', 'aria-label': o.label ?? '选项' });
+  const root = el('div', 'segmented', { role: 'group', 'aria-label': o.label ?? t('选项') });
   const buttons: HTMLButtonElement[] = [];
   for (const opt of o.options) {
     const b = el('button', '', { type: 'button', 'aria-pressed': 'false', 'data-value': String(opt.value) });
@@ -623,7 +624,7 @@ export function createPanel(o: PanelOptions): PanelHandle {
   root.appendChild(body);
 
   if (o.collapsible) {
-    const btn = el('button', 'btn btn-icon', { type: 'button', 'aria-label': '折叠/展开' });
+    const btn = el('button', 'btn btn-icon', { type: 'button', 'aria-label': t('折叠/展开') });
     btn.textContent = o.startCollapsed ? '+' : '−';
     btn.addEventListener('click', () => {
       body.classList.toggle('hidden');
@@ -657,7 +658,7 @@ export interface StompHandle {
 }
 
 /** 单块旁通开关：亮 = 启用，暗 = 旁通 */
-export function createStomp(initial: boolean, onChange?: (on: boolean) => void, title = '旁通'): StompHandle {
+export function createStomp(initial: boolean, onChange?: (on: boolean) => void, title = t('旁通')): StompHandle {
   const btn = el('button', 'stomp', {
     type: 'button',
     'aria-pressed': initial ? 'true' : 'false',

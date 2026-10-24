@@ -5,6 +5,7 @@
  */
 import type { FxInstance, FxOption, FxParams, FxSpec } from './types';
 import { createDryWet, formatHz, formatPercent, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 /** 环形调制的载波波形 */
 const WAVES: FxOption[] = [
@@ -87,7 +88,7 @@ export const ringmodSpec: FxSpec = {
       },
       isBypassed: () => bypassed,
       meter: () => Math.min(1, v.depth),
-      status: () => `${formatHz(v.freq)} ${WAVES.find((w) => w.value === v.wave)?.label ?? ''}`.trim(),
+      status: () => `${formatHz(v.freq)} ${t(WAVES.find((w) => w.value === v.wave)?.label ?? '')}`.trim(),
       dispose() {
         try {
           osc.stop();

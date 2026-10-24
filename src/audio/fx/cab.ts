@@ -7,6 +7,7 @@ import type { CabModel } from './ir';
 import type { FxInstance, FxParams, FxSpec } from './types';
 import { generateCabIR } from './ir';
 import { createDryWet, formatDbInt, formatPercent, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 const MODELS: { id: CabModel; label: string }[] = [
   { id: '1x12', label: '1×12 开放式' },
@@ -121,7 +122,7 @@ export const cabSpec: FxSpec = {
       },
       isBypassed: () => bypassed,
       meter: () => Math.min(1, v.mix),
-      status: () => MODELS[Math.round(v.model)].label,
+      status: () => t(MODELS[Math.round(v.model)].label),
       dispose() {
         conv.buffer = null;
         hp.disconnect();

@@ -60,17 +60,6 @@ export function allFxSpecs(): readonly FxSpec[] {
   return FX_SPECS;
 }
 
-export const FX_CATEGORY_LABEL: Record<FxCategory, string> = {
-  dynamics: '动态',
-  filter: '滤波',
-  drive: '失真',
-  amp: '音箱',
-  modulation: '调制',
-  time: '空间',
-  pitch: '音高',
-  utility: '工具',
-};
-
 export const FX_CATEGORY_ORDER: FxCategory[] = [
   'dynamics',
   'filter',

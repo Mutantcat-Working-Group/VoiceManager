@@ -6,6 +6,7 @@
 import { getTempo, noteToMs } from '../tempo';
 import type { FxInstance, FxParams, FxSpec } from './types';
 import { createDryWet, formatMs, formatPercent, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 /**
  * 延迟 —— 回声 / Delay，支持手动时间、跟随节拍、乒乓立体声与调制。
@@ -176,7 +177,7 @@ export const delaySpec: FxSpec = {
       },
       isBypassed: () => bypassed,
       meter: () => Math.min(1, v.mix),
-      status: () => (v.sync > 0.5 ? `同步 ${getTempo()} BPM` : formatMs(v.time)),
+      status: () => (v.sync > 0.5 ? t('同步 {n0} BPM', { n0: getTempo() }) : formatMs(v.time)),
       dispose() {
         clearInterval(timer);
         try {

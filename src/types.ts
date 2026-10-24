@@ -5,6 +5,8 @@
  */
 import type { FxParams } from './audio/fx/types';
 
+import { t } from './i18n';
+
 export type ModeId = 'pa' | 'guitar' | 'bass' | 'fx';
 
 export type InputKind = 'mic' | 'tab' | 'test';
@@ -71,3 +73,10 @@ export const MODE_LIST: { id: ModeId; name: string; code: string; blurb: string 
 export function modeInfo(id: ModeId) {
   return MODE_LIST.find((m) => m.id === id) ?? MODE_LIST[0];
 }
+
+/*
+ * 模式名/简介的中文原文存在 MODE_LIST 里，取用时过一层 t()：
+ * 切语言后 hero、状态栏、模式条会一起变（在定义处包 t() 会被冻住）。
+ */
+export const modeName = (id: ModeId): string => t(modeInfo(id).name);
+export const modeBlurb = (id: ModeId): string => t(modeInfo(id).blurb);

@@ -17,6 +17,7 @@
 import { registerWorklets, workletsSupported } from './worklets';
 import { TestTone } from './test-tone';
 import { FeedbackGuard, type FeedbackGuardStatus } from './feedback-guard';
+import { t } from '../i18n';
 
 export type InputSourceKind = 'mic' | 'tab' | 'test';
 
@@ -41,9 +42,9 @@ export interface InputOptions {
 }
 
 const INPUT_KIND_LABEL: Record<InputSourceKind, string> = {
-  mic: '麦克风 / 线路输入',
-  tab: '标签页 / 系统音频',
-  test: '内置测试音源',
+  mic: t('麦克风 / 线路输入'),
+  tab: t('标签页 / 系统音频'),
+  test: t('内置测试音源'),
 };
 
 export function inputKindLabel(kind: InputSourceKind): string {
@@ -226,7 +227,7 @@ export class AudioEngine {
       const md = navigator.mediaDevices as MediaDevices & {
         getDisplayMedia?: (c: DisplayMediaStreamOptions) => Promise<MediaStream>;
       };
-      if (!md.getDisplayMedia) throw new Error('当前浏览器不支持捕获标签页音频，请使用 Chrome / Edge');
+      if (!md.getDisplayMedia) throw new Error(t('当前浏览器不支持捕获标签页音频，请使用 Chrome / Edge'));
       stream = await md.getDisplayMedia({
         video: true,
         audio: {
@@ -364,7 +365,7 @@ export class AudioEngine {
       }
       const entry: DeviceEntry = {
         deviceId: d.deviceId,
-        label: d.label || (d.kind === 'audioinput' ? `输入设备 ${i + 1}` : `输出设备 ${i + 1}`),
+        label: d.label || (d.kind === 'audioinput' ? t('输入设备 {n0}', { n0: i + 1 }) : t('输出设备 {n0}', { n0: i + 1 })),
       };
       if (d.kind === 'audioinput') inputs.push(entry);
       else if (d.kind === 'audiooutput') outputs.push(entry);
@@ -377,7 +378,7 @@ export class AudioEngine {
    * 权限已授予时不会弹窗；未授予时会弹出浏览器授权框。
    */
   async unlockDeviceLabels(): Promise<void> {
-    if (!navigator.mediaDevices?.getUserMedia) throw new Error('当前浏览器不支持设备枚举');
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error(t('当前浏览器不支持设备枚举'));
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     for (const t of stream.getTracks()) t.stop();
   }

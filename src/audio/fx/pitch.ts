@@ -5,6 +5,7 @@
  */
 import type { FxInstance, FxParams, FxSpec } from './types';
 import { createDryWet, formatMs, formatPercent, formatSemitones, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 /**
  * 变调 —— 颗粒式实时变调（AudioWorklet）。
@@ -100,7 +101,7 @@ export const pitchSpec: FxSpec = {
       },
       isBypassed: () => bypassed,
       meter: () => Math.min(1, Math.abs(v.semitones) / 12),
-      status: () => (v.semitones === 0 ? '原始音高' : formatSemitones(v.semitones)),
+      status: () => (v.semitones === 0 ? t('原始音高') : formatSemitones(v.semitones)),
       dispose() {
         node.disconnect();
       },

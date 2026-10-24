@@ -1735,3 +1735,11 @@
     0 0 20px rgba(242, 169, 43, 0.3);
   transform: translateY(1px);
 }
+
+/* 语言选择器提示 */
+.lang-hint {
+  margin: 0 0 4px;
+  color: var(--c-ink-3);
+  font-size: 11px;
+  line-height: 1.5;
+}

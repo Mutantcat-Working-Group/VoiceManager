@@ -5,6 +5,7 @@
  */
 import type { FxInstance, FxParams, FxSpec } from './types';
 import { createDryWet, formatMs, formatPercent, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 const PANS = [-0.75, 0.75, 0];
 
@@ -122,7 +123,7 @@ export const chorusSpec: FxSpec = {
       },
       isBypassed: () => bypassed,
       meter: () => Math.min(1, v.mix),
-      status: () => `${Math.round(v.voices)} 声部 · ${v.rate.toFixed(1)} Hz`,
+      status: () => t('{n0} 声部 · {n1} Hz', { n0: Math.round(v.voices), n1: v.rate.toFixed(1) }),
       dispose() {
         for (const o of oscs) {
           try {

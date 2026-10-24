@@ -13,6 +13,7 @@
  */
 
 import { clamp } from './fx/util';
+import { t } from '../i18n';
 
 /** 一条录音 */
 export interface RecordingItem {
@@ -92,11 +93,11 @@ export class Recorder {
 
   constructor(stream: MediaStream) {
     const mime = pickMimeType();
-    if (mime === null) throw new Error('当前浏览器不支持 MediaRecorder，无法录音');
+    if (mime === null) throw new Error(t('当前浏览器不支持 MediaRecorder，无法录音'));
     try {
       this.recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
     } catch {
-      throw new Error('无法创建录音器：浏览器拒绝了所选的音频格式');
+      throw new Error(t('无法创建录音器：浏览器拒绝了所选的音频格式'));
     }
     this.mimeType = mime || this.recorder.mimeType || FALLBACK_MIME;
 
@@ -249,9 +250,9 @@ export class LoopStation {
    * 小节网格以首次 arm 的时刻为原点，因此多次叠录天然同相位。
    */
   arm(bars: number, bpm: number, beatsPerBar: number): void {
-    if (this.disposed) throw new Error('循环站已释放，无法准备录音');
+    if (this.disposed) throw new Error(t('循环站已释放，无法准备录音'));
     if (this.recordingFlag) return; // 正在录音时忽略新的准备请求
-    if (pickMimeType() === null) throw new Error('当前浏览器不支持 MediaRecorder，无法循环录音');
+    if (pickMimeType() === null) throw new Error(t('当前浏览器不支持 MediaRecorder，无法循环录音'));
     this.cancelPending();
     const b = clamp(Math.round(bars), 1, MAX_BARS);
     const beats = clamp(Math.round(beatsPerBar), 1, 16);
@@ -277,7 +278,7 @@ export class LoopStation {
       try {
         buffer = await this.ctx.decodeAudioData(await blob.arrayBuffer());
       } catch {
-        throw new Error('循环层解码失败：这段录音无法被解析');
+        throw new Error(t('循环层解码失败：这段录音无法被解析'));
       }
 
       const source = this.ctx.createBufferSource();
@@ -409,13 +410,13 @@ export class LoopStation {
   private beginRecording(start: number): void {
     if (this.disposed || !this.armedFlag) return;
     const mime = pickMimeType();
-    if (mime === null) throw new Error('当前浏览器不支持 MediaRecorder，无法循环录音');
+    if (mime === null) throw new Error(t('当前浏览器不支持 MediaRecorder，无法循环录音'));
 
     let recorder: MediaRecorder;
     try {
       recorder = new MediaRecorder(this.dest.stream, mime ? { mimeType: mime } : undefined);
     } catch {
-      throw new Error('无法开始循环录音：浏览器拒绝了所选的音频格式');
+      throw new Error(t('无法开始循环录音：浏览器拒绝了所选的音频格式'));
     }
     this.recorder = recorder;
     this.recordMime = mime || recorder.mimeType || FALLBACK_MIME;
@@ -433,7 +434,7 @@ export class LoopStation {
       recorder.start();
     } catch {
       this.recorder = null;
-      throw new Error('无法开始循环录音：MediaRecorder 启动失败');
+      throw new Error(t('无法开始循环录音：MediaRecorder 启动失败'));
     }
     this.recordingFlag = true;
 

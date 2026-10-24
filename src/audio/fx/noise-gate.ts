@@ -5,6 +5,7 @@
  */
 import type { FxInstance, FxParams, FxSpec } from './types';
 import { createDryWet, formatDbInt, formatPercent, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 /**
  * 噪声门 —— 抑制无信号时的底噪、电流声与环境噪声。
@@ -114,7 +115,7 @@ export const noiseGateSpec: FxSpec = {
       },
       isBypassed: () => bypassed,
       meter: () => (open ? 1 : 0.12),
-      status: () => (open ? '开启' : '关闭'),
+      status: () => (open ? t('开启') : t('关闭')),
       dispose() {
         node.port.onmessage = null;
         node.disconnect();

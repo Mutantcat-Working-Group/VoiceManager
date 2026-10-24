@@ -178,6 +178,69 @@
 
 ---
 
+## 多语言
+
+界面支持 **9 种语言**：简体中文（源语言）、English、日本語、Français、Deutsch、Español、
+Português (Brasil)、Русский、한국어。切换入口在右栏「输入与设备」面板顶部的语言选择器。
+
+### 首次打开怎么选
+
+按浏览器语言自动挑，优先级如下：
+
+1. `localStorage['voicemanager:locale']` —— 你上次手动选过的，优先
+2. `navigator.languages` 逐个匹配（精确 → 主语言 → 方言回退）
+3. 都不中就简体中文
+
+方言回退规则：`zh-TW` / `zh-HK` / `zh-MO` → 简体中文，`pt` / `pt-PT` → Português (Brasil。
+首次检测**不会**写入 localStorage，所以之后改浏览器语言、下次打开仍然生效。
+
+### 实现方式：「中文即键」
+
+词典的键就是简体中文原文（`Record<string, string>`），运行时 `t(key)` 查不到就原样返回 key。
+这样有两个好处：
+
+- 不用给几百条文案编一套 ID，改动最小；
+- 简体中文永远完整可用，缺译时优雅退化为中文原文，而不是把 `fx.delay.label` 这种键名显示给用户。
+
+插值用 `{name}` 占位符；内联标签也可以进译文，让译文按自己的语序摆放：
+
+| 占位符 | 展开成 | 说明 |
+| --- | --- | --- |
+| `{n0}` `{n1}` … | 传入的参数值 | 数据占位符，按出现顺序编号 |
+| `{b}` `{/b}` | `<b>` `</b>` | 粗体 |
+| `{k1}` `{k2}` … | `<span class="kbd">` | 键帽（快捷键说明里用） |
+
+### 切语言后哪些会跟着变
+
+- **静态文案**（`title` / `aria-label` / 叶子节点文本）：界面挂载后 `captureStaticText()` 抓一份原文，
+  切语言时 `retranslateStaticText()` 按原文重译。只重译「自上次以来没被动态改过」的节点，
+  所以状态行、表头读数这些被 render 函数接管的不会被覆盖回静态文案。
+- **动态文案**（效果器名 / 参数名 / 预设名 / 状态栏 / 帮助面板）：走 `renderAll()` 里的 `t()`。
+- **效果器与预设数据**：`FxSpec` / `ChainPreset` 是模块级常量，定义处包 `t()` 会被冻住，
+  所以在**使用点**过一层访问器 —— `fxName` / `fxBlurb` / `fxParamLabel` / `fxParamHelp` /
+  `fxOptionLabel` / `fxParamFormat` / `fxCategoryLabel` / `presetName` / `presetBlurb`（见 `src/i18n/fx.ts`）。
+- **`<html lang>`**：随语言同步，屏幕阅读器和浏览器翻译都会跟着走。
+
+### 增补翻译
+
+翻译数据在 `tools/i18n/.data*.py`，每行一条 `(中文键, en, ja, fr, de, es, pt-BR, ru, ko)`。
+改完跑 `python3 tools/i18n/gen.py` 重新生成 `src/i18n/locales/*.ts` 八个词典。
+
+```
+tools/i18n/
+  .data1.py … .data7.py    翻译数据（中文键 + 8 语言译文）
+  gen.py                   数据 → src/i18n/locales/*.ts
+  wrap.py                  把源码里的中文字面量包成 t('…') 的一次性脚本
+src/i18n/
+  index.ts                 核心：t() / getLocale() / setLocale() / matchLocale() / detectLocale()
+  fx.ts                    效果器与预设的取用点访问器
+  dom.ts                   静态文案抓取与重译
+  locales/                 8 个词典
+```
+
+
+---
+
 ## 快速开始
 
 ```bash
@@ -211,7 +274,7 @@ npm run preview    # 预览生产构建
 ## 项目结构
 
 ```
-index.html                  入口 HTML（lang=zh-CN）
+index.html                  入口 HTML（lang 由 initI18n 同步）
 vite.config.ts              base:'./'（GitHub Pages 相对路径）+ worker iife
 src/
   main.ts                   主编排：状态 → 引擎 → 视图
@@ -229,8 +292,10 @@ src/
     fx/                     21 个效果器 + 契约层 + 工具
     worklets/               4 个 AudioWorklet（噪声门 / 移调 / 比特 / 包络）
   ui/                       DOM 组件（旋钮 / 推子 / 开关 / 分段 / 面板 / 链条 / 表头）
+  i18n/                     多语言：核心 / 访问器 / 静态文案重译 / 8 个词典
   styles/                   设计令牌 + 控件 + 布局
 .github/workflows/deploy.yml  push main → GitHub Pages
+tools/i18n/                翻译数据 + 词典生成脚本
 icon.png                    应用图标（favicon + apple-touch-icon）
 LICENSE                     GNU GPL v3.0
 ```
@@ -238,7 +303,7 @@ LICENSE                     GNU GPL v3.0
 ### 界面分区
 
 左栏是「机架」：模式说明 → 电平 / 频谱 → 当前效果器参数 → 预设 → 效果器仓库。
-右栏是「工具」：调音器 → 节拍器 → 循环录音 → 录音机 → 输入与设备 → 使用说明。
+右栏是「工具」：调音器 → 节拍器 → 循环录音 → 录音机 → 输入与设备（顶部是**语言选择**）→ 使用说明。
 两栏高度经过配平，宽屏下不会出现一侧空一大块的情况；窄屏（≤1100px）自动收成单栏，
 侧栏改为自适应网格。
 ```

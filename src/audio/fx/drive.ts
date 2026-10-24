@@ -6,6 +6,7 @@
 import type { DriveCurve } from './util';
 import type { FxInstance, FxParams, FxSpec } from './types';
 import { formatDbInt, formatPercent, makeDriveCurve, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 const TYPES: { type: DriveCurve; label: string }[] = [
   { type: 'overdrive', label: '过载 Overdrive' },
@@ -96,7 +97,7 @@ export const driveSpec: FxSpec = {
       },
       isBypassed: () => bypassed,
       meter: () => Math.min(1, v.drive),
-      status: () => TYPES[Math.round(v.type)].label.split(' ')[0],
+      status: () => t(TYPES[Math.round(v.type)].label).split(' ')[0],
       dispose() {
         ws.curve = null;
         inG.disconnect();

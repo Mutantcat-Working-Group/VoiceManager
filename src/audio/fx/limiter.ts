@@ -5,6 +5,7 @@
  */
 import type { FxInstance, FxParams, FxSpec } from './types';
 import { formatDbInt, formatMs, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 /** 限幅器：最后一级保护，防止削波与啸叫刺耳 */
 export const limiterSpec: FxSpec = {
@@ -61,7 +62,10 @@ export const limiterSpec: FxSpec = {
       },
       isBypassed: () => bypassed,
       meter: () => Math.min(1, Math.max(0, -comp.reduction / 12)),
-      status: () => (comp.reduction < -0.2 ? `限幅 ${Math.abs(comp.reduction).toFixed(1)} dB` : '通过'),
+      status: () =>
+        comp.reduction < -0.2
+          ? t('限幅 {n0} dB', { n0: Math.abs(comp.reduction).toFixed(1) })
+          : t('通过'),
       dispose() {
         comp.disconnect();
         out.disconnect();

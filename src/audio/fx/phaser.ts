@@ -5,6 +5,7 @@
  */
 import type { FxInstance, FxParams, FxSpec } from './types';
 import { createDryWet, formatHz, formatPercent } from './util';
+import { t } from '../../i18n';
 
 const STAGE_COUNTS = [2, 4, 6, 8];
 
@@ -125,7 +126,7 @@ export const phaserSpec: FxSpec = {
       },
       isBypassed: () => bypassed,
       meter: () => Math.min(1, v.mix),
-      status: () => `${STAGE_COUNTS[Math.round(v.stages)]} 级 · ${v.rate.toFixed(2)} Hz`,
+      status: () => t('{n0} 级 · {n1} Hz', { n0: STAGE_COUNTS[Math.round(v.stages)], n1: v.rate.toFixed(2) }),
       dispose() {
         try {
           lfo.stop();

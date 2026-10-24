@@ -6,6 +6,7 @@
 import type { DriveCurve } from './util';
 import type { FxInstance, FxParams, FxSpec } from './types';
 import { formatDbInt, formatPercent, makeDriveCurve, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 interface AmpModel {
   label: string;
@@ -114,7 +115,7 @@ export const ampSpec: FxSpec = {
       },
       isBypassed: () => bypassed,
       meter: () => Math.min(1, v.gain),
-      status: () => MODELS[Math.round(v.model)].label,
+      status: () => t(MODELS[Math.round(v.model)].label),
       dispose() {
         ws.curve = null;
         inG.disconnect();

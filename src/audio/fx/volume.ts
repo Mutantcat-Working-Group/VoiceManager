@@ -5,6 +5,7 @@
  */
 import type { FxInstance, FxParams, FxSpec } from './types';
 import { formatDbInt, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 /** 增益/音量模块：链路里的推子 */
 export const volumeSpec: FxSpec = {
@@ -15,7 +16,18 @@ export const volumeSpec: FxSpec = {
   blurb: '链路内的电平推子，用于各级之间的音量匹配',
   params: [
     { key: 'gain', label: '增益', min: -40, max: 12, step: 0.5, default: 0, unit: 'dB', format: formatDbInt },
-    { key: 'pan', label: '声场', min: -1, max: 1, step: 0.02, default: 0, format: (v) => (Math.abs(v) < 0.03 ? '居中' : `${v < 0 ? '左' : '右'} ${Math.round(Math.abs(v) * 100)}%`) },
+    {
+      key: 'pan',
+      label: '声场',
+      min: -1,
+      max: 1,
+      step: 0.02,
+      default: 0,
+      format: (v) =>
+        Math.abs(v) < 0.03
+          ? t('居中')
+          : t('{n0}{n1}%', { n0: t(v < 0 ? '左' : '右'), n1: Math.round(Math.abs(v) * 100) }),
+    },
   ],
   create(ctx: AudioContext, params: FxParams): FxInstance {
     const g = ctx.createGain();

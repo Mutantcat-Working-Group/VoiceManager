@@ -5,6 +5,7 @@
  */
 import type { FxInstance, FxOption, FxParams, FxSpec } from './types';
 import { dbToGain, formatDbInt, formatHz, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 /** 滤波器类型选项 */
 const FILTER_TYPES: FxOption[] = [
@@ -20,7 +21,7 @@ function filterTypeOf(v: number): BiquadFilterType {
 }
 
 function filterLabel(v: number): string {
-  return FILTER_TYPES.find((t) => t.value === v)?.label ?? '低通';
+  return t(FILTER_TYPES.find((o) => o.value === v)?.label ?? '低通');
 }
 
 /**

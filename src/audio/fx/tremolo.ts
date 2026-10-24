@@ -5,6 +5,7 @@
  */
 import type { FxInstance, FxParams, FxSpec } from './types';
 import { createDryWet, formatPercent, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 const SHAPES: OscillatorType[] = ['sine', 'square', 'triangle'];
 
@@ -103,7 +104,7 @@ export const tremoloSpec: FxSpec = {
       },
       isBypassed: () => bypassed,
       meter: () => Math.min(1, v.depth),
-      status: () => `${SHAPES[Math.round(v.shape)]} · ${v.rate.toFixed(1)} Hz`,
+      status: () => `${t(SHAPES[Math.round(v.shape)])} · ${v.rate.toFixed(1)} Hz`,
       dispose() {
         for (const o of [lfo, lfo2]) {
           try {

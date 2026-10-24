@@ -9,12 +9,15 @@
  * 全部用原生 Web Audio 节点 + 预生成缓冲实现，不依赖 AudioWorklet。
  */
 
+
+import { t } from '../i18n';
+
 export type TestToneMode = 0 | 1 | 2 | 3 | 4;
 
-const MODE_LABELS = ['正弦波', '粉红噪声', '拨弦(吉他)', '扫频', '和弦'];
-
+/** 音源模式名（0..4）——每次调用都取当前语言，切语言后立即生效 */
 export function testToneModeLabel(mode: number): string {
-  return MODE_LABELS[Math.max(0, Math.min(MODE_LABELS.length - 1, Math.round(mode)))] ?? '正弦波';
+  const labels = [t('正弦波'), t('粉红噪声'), t('拨弦(吉他)'), t('扫频'), t('和弦')];
+  return labels[Math.max(0, Math.min(labels.length - 1, Math.round(mode)))] ?? t('正弦波');
 }
 
 /** 粉红噪声（Paul Kellet 近似） */

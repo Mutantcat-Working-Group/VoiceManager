@@ -5,6 +5,7 @@
  */
 import type { FxInstance, FxOption, FxParams, FxSpec } from './types';
 import { formatPercent, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 /** 八度音选项：整数倍八度平移 */
 const OCTAVES: FxOption[] = [
@@ -20,7 +21,7 @@ function toneHz(tone: number): number {
 }
 
 function octaveLabel(octave: number): string {
-  return OCTAVES.find((o) => o.value === octave)?.label ?? '原始音高';
+  return t(OCTAVES.find((o) => o.value === octave)?.label ?? '原始音高');
 }
 
 /**

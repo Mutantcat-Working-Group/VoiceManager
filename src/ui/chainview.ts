@@ -8,6 +8,7 @@
  */
 
 import { createLed, el } from './components';
+import { t } from '../i18n';
 
 export interface ChainBlockView {
   uid: string;
@@ -40,6 +41,7 @@ export interface ChainViewHandle {
 interface Entry {
   box: HTMLElement;
   led: ReturnType<typeof createLed>;
+  name: HTMLElement;
   status: HTMLElement;
 }
 
@@ -73,7 +75,7 @@ export function createChainView(handlers: ChainHandlers): ChainViewHandle {
       'data-uid': b.uid,
       'data-active': 'false',
       'data-bypassed': 'false',
-      title: `${b.name}（点击编辑，点灯或右键切换旁通）`,
+      title: t('{n0}（点击编辑，点灯或右键切换旁通）', { n0: b.name }),
     });
     const top = el('div', 'stompbox-top');
     const code = el('span', 'stompbox-code');
@@ -86,9 +88,9 @@ export function createChainView(handlers: ChainHandlers): ChainViewHandle {
     const status = el('div', 'stompbox-status mono');
     /* 触屏排序按钮：桌面端隐藏（有拖拽），触摸端显示 */
     const moves = el('div', 'stompbox-moves');
-    const up = el('button', 'stompbox-move', { type: 'button', 'aria-label': '上移', title: '上移一级' });
+    const up = el('button', 'stompbox-move', { type: 'button', 'aria-label': t('上移'), title: t('上移一级') });
     up.textContent = '▲';
-    const down = el('button', 'stompbox-move', { type: 'button', 'aria-label': '下移', title: '下移一级' });
+    const down = el('button', 'stompbox-move', { type: 'button', 'aria-label': t('下移'), title: t('下移一级') });
     down.textContent = '▼';
     up.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -188,7 +190,7 @@ export function createChainView(handlers: ChainHandlers): ChainViewHandle {
       delete box.dataset.drop;
       if (from && from !== b.uid) handlers.onReorder?.(from, b.uid, before);
     });
-    return { box, led, status };
+    return { box, led, name, status };
   };
 
   /* 拖入落点指示线 */
@@ -244,7 +246,7 @@ export function createChainView(handlers: ChainHandlers): ChainViewHandle {
       const scroll = root.scrollLeft;
       while (root.firstChild) root.removeChild(root.firstChild);
 
-      root.appendChild(makeJack('输入'));
+      root.appendChild(makeJack(t('输入')));
       blocks.forEach((b, i) => {
         if (i > 0) root.appendChild(el('div', 'chain-cable'));
         let entry = built.get(b.uid);
@@ -255,17 +257,20 @@ export function createChainView(handlers: ChainHandlers): ChainViewHandle {
         entry.box.dataset.active = b.active ? 'true' : 'false';
         entry.box.dataset.bypassed = b.bypassed ? 'true' : 'false';
         entry.led.setOn(!b.bypassed);
-        entry.status.textContent = b.bypassed ? '旁通' : b.status || '启用';
+        /* 盒子是复用的，切语言后要把名称和标题一起换掉 */
+        entry.name.textContent = b.name;
+        entry.box.title = t('{n0}（点击编辑，点灯或右键切换旁通）', { n0: b.name });
+        entry.status.textContent = b.bypassed ? t('旁通') : b.status || t('启用');
         root.appendChild(entry.box);
       });
       root.appendChild(el('div', 'chain-cable'));
-      root.appendChild(makeJack('输出'));
+      root.appendChild(makeJack(t('输出')));
 
       if (handlers.onAdd && handlers.canAdd !== false) {
         const add = el('button', 'chain-add', {
           type: 'button',
-          'aria-label': '添加效果器',
-          title: '添加效果器',
+          'aria-label': t('添加效果器'),
+          title: t('添加效果器'),
         });
         add.textContent = '+';
         add.addEventListener('click', () => handlers.onAdd?.());

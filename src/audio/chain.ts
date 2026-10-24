@@ -11,6 +11,7 @@
 import { getFxSpec, defaultParams } from './fx';
 import type { FxInstance } from './fx/types';
 import type { FxBlockState } from '../types';
+import { t } from '../i18n';
 
 let uidCounter = 0;
 
@@ -21,7 +22,7 @@ export function newBlockUid(): string {
 
 export function makeBlock(id: string, params?: Record<string, number>, bypassed = false): FxBlockState {
   const spec = getFxSpec(id);
-  if (!spec) throw new Error(`未知效果器: ${id}`);
+  if (!spec) throw new Error(t('未知效果器: {n0}', { n0: id }));
   return {
     uid: newBlockUid(),
     id,
@@ -70,7 +71,7 @@ export class SignalChain {
         // 合并默认参数：即使调用方漏传，也保证所有 AudioParam 都是有限数值
         inst = spec.create(this.ctx, { ...defaultParams(spec), ...block.params });
       } catch (err) {
-        console.warn(`[VoiceManager] 效果器 ${block.id} 创建失败，已跳过`, err);
+        console.warn(t('[VoiceManager] 效果器 {n0} 创建失败，已跳过', { n0: block.id }), err);
         continue;
       }
       inst.setBypassed(block.bypassed);

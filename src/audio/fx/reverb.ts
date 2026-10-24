@@ -6,6 +6,7 @@
 import type { FxInstance, FxParams, FxSpec } from './types';
 import { generateReverbIR, type ReverbModel } from './ir';
 import { createDryWet, formatMs, formatPercent, safeDisconnect } from './util';
+import { t } from '../../i18n';
 
 const MODELS: ReverbModel[] = ['room', 'hall', 'plate', 'church', 'spring'];
 const MODEL_LABELS = ['房间', '大厅', '钢板', '教堂', '弹簧'];
@@ -27,7 +28,7 @@ export const reverbSpec: FxSpec = {
       max: 4,
       step: 1,
       default: 1,
-      options: MODEL_LABELS.map((l, i) => ({ value: i, label: l })),
+      options: MODEL_LABELS.map((l, i) => ({ value: i, label: t(l) })),
     },
     { key: 'size', label: '衰减时间', min: 0.3, max: 4, step: 0.05, default: 1.8, unit: 's', format: formatMs },
     { key: 'predelay', label: '预延迟', min: 0, max: 150, step: 1, default: 20, unit: 'ms', format: formatMs },
@@ -96,7 +97,7 @@ export const reverbSpec: FxSpec = {
       },
       isBypassed: () => bypassed,
       meter: () => Math.min(1, v.mix),
-      status: () => `${MODEL_LABELS[Math.round(v.model)]} · ${formatMs(v.size)}`,
+      status: () => `${t(MODEL_LABELS[Math.round(v.model)])} · ${formatMs(v.size)}`,
       dispose() {
         conv.buffer = null;
         pre.disconnect();

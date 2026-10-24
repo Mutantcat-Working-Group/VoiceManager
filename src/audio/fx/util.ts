@@ -1,4 +1,5 @@
-/**
+
+import { t } from '../../i18n';/**
  * VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
  * Copyright (C) 2026 Mutantcat Working Group
  * License: GPL-3.0-or-later <https://www.gnu.org/licenses/>
@@ -65,7 +66,7 @@ export function formatPercentRaw(v: number): string {
 
 export function formatSemitones(v: number): string {
   const s = v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1);
-  return `${s} 半音`;
+  return t('{n0} 半音', { n0: s });
 }
 
 export function formatRatio(v: number): string {
