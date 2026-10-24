@@ -26,6 +26,8 @@ export interface ChainHandlers {
   canAdd?: boolean;
   /** 拖拽排序：把 fromUid 移到 toUid 之前/之后 */
   onReorder?(fromUid: string, toUid: string, before: boolean): void;
+  /** 触屏排序：HTML5 拖放在触摸设备上不生效，用上下按钮代替 */
+  onMove?(uid: string, dir: -1 | 1): void;
 }
 
 export interface ChainViewHandle {
@@ -77,12 +79,29 @@ export function createChainView(handlers: ChainHandlers): ChainViewHandle {
     const name = el('div', 'stompbox-name');
     name.textContent = b.name;
     const status = el('div', 'stompbox-status mono');
+    /* 触屏排序按钮：桌面端隐藏（有拖拽），触摸端显示 */
+    const moves = el('div', 'stompbox-moves');
+    const up = el('button', 'stompbox-move', { type: 'button', 'aria-label': '上移', title: '上移一级' });
+    up.textContent = '▲';
+    const down = el('button', 'stompbox-move', { type: 'button', 'aria-label': '下移', title: '下移一级' });
+    down.textContent = '▼';
+    up.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handlers.onMove?.(b.uid, -1);
+    });
+    down.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handlers.onMove?.(b.uid, 1);
+    });
+    moves.append(up, down);
     box.appendChild(top);
     box.appendChild(name);
+    box.appendChild(moves);
     box.appendChild(status);
     box.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
       if (target.closest('.led')) handlers.onToggleBypass(b.uid);
+      else if (target.closest('.stompbox-move')) return; // 排序按钮自己处理
       else handlers.onSelect(b.uid);
     });
     box.addEventListener('contextmenu', (e) => {

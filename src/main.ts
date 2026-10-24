@@ -232,12 +232,15 @@ chainTitle.append(el('span', 'silk'));
 (chainTitle.firstChild as HTMLElement).textContent = '信号链路 / SIGNAL PATH';
 const chainHint = el('span', 'panel-hint');
 chainHint.textContent = '点击模块编辑参数 · 点灯或右键切换旁通';
-chainHead.append(chainTitle, chainHint);
+const chainSwipe = el('span', 'panel-hint chain-swipe');
+chainSwipe.textContent = '← 左右滑动查看整条链 →';
+chainHead.append(chainTitle, chainHint, chainSwipe);
 const chainView = createChainView({
   onSelect: (uid) => selectBlock(uid),
   onToggleBypass: (uid) => toggleBypass(uid),
   onAdd: () => toggleLibrary(true),
   onReorder: (fromUid, toUid, before) => reorderBlock(fromUid, toUid, before),
+  onMove: (uid, dir) => moveBlock(uid, dir),
 });
 chainbar.append(chainHead, chainView.el);
 
@@ -832,6 +835,14 @@ helpBody.innerHTML = `
     「保持」可以避免音符之间的正常停顿被误切。吉他 / 贝斯建议阈值 -45 dB 左右，人声可到 -50 dB。</p>
   </div>
   <div>
+    <h4>手机 / 平板</h4>
+    <ul>
+      <li>窄屏下三个设备下拉会自动排成两列；所有可点区域都做到了 44 px 以上。</li>
+      <li>效果器的排序：桌面端直接拖着盒子在链上换位置；触摸端 HTML5 拖放不生效，
+        改用盒子上的 <b>▲ / ▼</b> 按钮（仅在触摸或窄屏下显示）。</li>
+      <li>链很长时左右滑动查看，头部有「← 左右滑动查看整条链 →」提示。</li>
+      <li>旋钮 / 推子用指针事件，触摸拖动顺滑，且不会连带滚动页面。</li>
+    </ul>
     <h4>键盘快捷键</h4>
     <ul>
       <li><span class="kbd">空格</span> 电源开关　<span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span><span class="kbd">4</span> 切换模式</li>
