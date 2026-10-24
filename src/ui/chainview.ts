@@ -24,6 +24,8 @@ export interface ChainHandlers {
   onToggleBypass(uid: string): void;
   onAdd?(): void;
   canAdd?: boolean;
+  /** 拖拽排序：把 fromUid 移到 toUid 之前/之后 */
+  onReorder?(fromUid: string, toUid: string, before: boolean): void;
 }
 
 export interface ChainViewHandle {
@@ -40,6 +42,13 @@ interface Entry {
 export function createChainView(handlers: ChainHandlers): ChainViewHandle {
   const root = el('div', 'chain-track');
   const built = new Map<string, Entry>();
+  let dragUid: string | null = null;
+
+  const clearDropMarks = () => {
+    root.querySelectorAll<HTMLElement>('.stompbox[data-drop]').forEach((n) => {
+      delete n.dataset.drop;
+    });
+  };
 
   const makeJack = (label: string): HTMLElement => {
     const wrap = el('div', 'chain-io');
@@ -79,6 +88,42 @@ export function createChainView(handlers: ChainHandlers): ChainViewHandle {
     box.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       handlers.onToggleBypass(b.uid);
+    });
+
+    /* 拖拽排序：直接拖着效果器盒在链上换位置（借鉴 GuitarStack 的 pedalboard 交互） */
+    box.draggable = true;
+    box.addEventListener('dragstart', (e) => {
+      dragUid = b.uid;
+      box.dataset.dragging = 'true';
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', b.uid);
+      }
+    });
+    box.addEventListener('dragend', () => {
+      dragUid = null;
+      delete box.dataset.dragging;
+      clearDropMarks();
+    });
+    box.addEventListener('dragover', (e) => {
+      if (!dragUid || dragUid === b.uid) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      const r = box.getBoundingClientRect();
+      clearDropMarks();
+      box.dataset.drop = e.clientX < r.left + r.width / 2 ? 'before' : 'after';
+    });
+    box.addEventListener('dragleave', () => {
+      delete box.dataset.drop;
+    });
+    box.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const from = dragUid || e.dataTransfer?.getData('text/plain') || '';
+      const r = box.getBoundingClientRect();
+      const before = e.clientX < r.left + r.width / 2;
+      delete box.dataset.drop;
+      if (from && from !== b.uid) handlers.onReorder?.(from, b.uid, before);
     });
     return { box, led, status };
   };

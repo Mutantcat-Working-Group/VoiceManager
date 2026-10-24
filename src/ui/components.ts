@@ -464,15 +464,15 @@ export function createToggle(o: ToggleOptions): ToggleHandle {
 
 export interface SegmentedOptions {
   label?: string;
-  options: { value: number; label: string }[];
-  value: number;
-  onChange?: (v: number) => void;
+  options: { value: string | number; label: string }[];
+  value: string | number;
+  onChange?: (v: string | number) => void;
 }
 
 export interface SegmentedHandle {
   el: HTMLElement;
-  setValue(v: number): void;
-  getValue(): number;
+  setValue(v: string | number): void;
+  getValue(): string | number;
 }
 
 export function createSegmented(o: SegmentedOptions): SegmentedHandle {
@@ -491,10 +491,11 @@ export function createSegmented(o: SegmentedOptions): SegmentedHandle {
   let current = o.value;
   function render(): void {
     for (const b of buttons) {
-      b.setAttribute('aria-pressed', Number(b.dataset.value) === current ? 'true' : 'false');
+      // 用字符串比对，数值和字符串两种 value 都能正确匹配
+      b.setAttribute('aria-pressed', String(b.dataset.value) === String(current) ? 'true' : 'false');
     }
   }
-  function setValue(v: number): void {
+  function setValue(v: string | number): void {
     current = v;
     render();
   }

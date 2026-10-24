@@ -237,6 +237,7 @@ const chainView = createChainView({
   onSelect: (uid) => selectBlock(uid),
   onToggleBypass: (uid) => toggleBypass(uid),
   onAdd: () => toggleLibrary(true),
+  onReorder: (fromUid, toUid, before) => reorderBlock(fromUid, toUid, before),
 });
 chainbar.append(chainHead, chainView.el);
 
@@ -530,6 +531,7 @@ const ecToggle = createToggle({
   onChange: (c) => {
     store.setState((p) => ({ ...p, input: { ...p.input, echoCancellation: c } }));
     renderFeedbackWarning();
+    renderProfileHint();
     void reacquireInput();
   },
 });
@@ -538,6 +540,7 @@ const nsToggle = createToggle({
   checked: S().input.noiseSuppression,
   onChange: (c) => {
     store.setState((p) => ({ ...p, input: { ...p.input, noiseSuppression: c } }));
+    renderProfileHint();
     void reacquireInput();
   },
 });
@@ -546,22 +549,74 @@ const agcToggle = createToggle({
   checked: S().input.autoGainControl,
   onChange: (c) => {
     store.setState((p) => ({ ...p, input: { ...p.input, autoGainControl: c } }));
+    renderProfileHint();
     void reacquireInput();
   },
 });
 togglesWrap.append(ecToggle.el, nsToggle.el, agcToggle.el);
 
+/*
+ * 采集约束预设（借鉴 GuitarStack：它为了最纯的吉他音质把 goog* 系列全关）。
+ * 两种取舍都合理——用扬声器放音必须开回声消除，戴耳机弹吉他则希望信号最干净。
+ */
+const INPUT_PROFILES = [
+  {
+    id: 'antifeedback',
+    label: '防啸叫优先',
+    title: '开回声消除 + 浏览器降噪，关自动增益。用扬声器放音时用这个',
+    constraints: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
+  },
+  {
+    id: 'quality',
+    label: '音质优先',
+    title: '全部关闭，拿最原始的输入信号。戴耳机弹吉他 / 贝斯时用这个',
+    constraints: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+  },
+] as const;
+
+const profileSeg = createSegmented({
+  label: '采集处理预设',
+  options: INPUT_PROFILES.map((p) => ({ value: p.id, label: p.label })),
+  value: 'antifeedback',
+  onChange: (id) => {
+    const prof = INPUT_PROFILES.find((p) => p.id === id);
+    if (!prof) return;
+    store.setState((p) => ({ ...p, input: { ...p.input, ...prof.constraints } }));
+    ecToggle.setChecked(prof.constraints.echoCancellation);
+    nsToggle.setChecked(prof.constraints.noiseSuppression);
+    agcToggle.setChecked(prof.constraints.autoGainControl);
+    renderFeedbackWarning();
+    renderProfileHint();
+    void reacquireInput();
+    toast(`采集处理已切换为「${prof.label}」`, 'info');
+  },
+});
+profileSeg.el.title = '切换浏览器对麦克风的处理程度';
+const profileHint = el('p', 'panel-hint profile-hint');
+function renderProfileHint(): void {
+  const s = S().input;
+  const hit = INPUT_PROFILES.find(
+    (p) =>
+      p.constraints.echoCancellation === s.echoCancellation &&
+      p.constraints.noiseSuppression === s.noiseSuppression &&
+      p.constraints.autoGainControl === s.autoGainControl,
+  );
+  profileSeg.setValue(hit?.id ?? '');
+  profileHint.textContent = hit ? hit.title : '当前是自定义组合：上面三个开关可以单独调。';
+}
+renderProfileHint();
+
 /* 反馈抑制：关掉时给一句明确警示 */
 const fbWarn = el('p', 'panel-hint fb-warning');
 fbWarn.setAttribute('role', 'status');
 function renderFeedbackWarning(): void {
+  renderEchoShield(); // 回声消除一变，防护结论就变了
   const ec = S().input.echoCancellation;
   fbWarn.textContent = ec
     ? ''
     : '⚠ 回声消除已关闭：若用扬声器放音，麦克风会拾取音箱输出，形成越拖越长的回声或啸叫。请改用耳机，或重新打开「回声消除」。';
   fbWarn.hidden = !ec ? false : true;
 }
-renderFeedbackWarning();
 const testRow = el('div');
 testRow.style.display = 'flex';
 testRow.style.flexDirection = 'column';
@@ -571,8 +626,9 @@ const testModeSeg = createSegmented({
   value: S().input.testMode,
   options: [0, 1, 2, 3, 4].map((v) => ({ value: v, label: testToneModeLabel(v) })),
   onChange: (v) => {
-    store.setState((p) => ({ ...p, input: { ...p.input, testMode: v } }));
-    engine.testTone.setMode(v);
+    const mode = Number(v);
+    store.setState((p) => ({ ...p, input: { ...p.input, testMode: mode } }));
+    engine.testTone.setMode(mode);
   },
 });
 const testLevel = createSlider({
@@ -723,9 +779,22 @@ function renderEchoShield(): void {
   }
 }
 
-ioBody.append(trimKnob.el, deviceHint, echoShield, togglesWrap, fbWarn, fbToggle.el, guardStatus, testRow, ioHint);
+ioBody.append(
+  trimKnob.el,
+  deviceHint,
+  echoShield,
+  profileSeg.el,
+  profileHint,
+  togglesWrap,
+  fbWarn,
+  fbToggle.el,
+  guardStatus,
+  testRow,
+  ioHint,
+);
 engine.onFeedbackGuard = (st) => renderGuardStatus(st);
 renderGuardStatus(engine.feedbackGuardState);
+renderFeedbackWarning();
 ioPanel.body.appendChild(ioBody);
 sidebar.appendChild(ioPanel.el);
 
@@ -740,6 +809,7 @@ helpBody.innerHTML = `
       <li>在「音源类型」里选择麦克风 / 标签页音频 / 内置测试音源。</li>
       <li>选择「输出设备」为耳机线或 USB 声卡，戴上耳机监听。</li>
       <li>点击信号链里的模块编辑参数，点灯或右键可旁通该模块。</li>
+      <li>也可以<b>直接拖着模块在链上换位置</b>——比如把混响拖到音箱前面，松手即生效。</li>
     </ol>
   </div>
   <div>
@@ -889,7 +959,7 @@ function renderFxPanel(): void {
         label: p.label,
         value,
         options: p.options,
-        onChange: (v) => setBlockParam(block.uid, p.key, v),
+        onChange: (v) => setBlockParam(block.uid, p.key, Number(v)),
       });
       row.append(label, seg.el);
       segRows.push(row);
@@ -1094,6 +1164,25 @@ function moveBlock(uid: string, dir: -1 | 1): void {
   }));
   rebuildChain();
   renderFxPanel();
+}
+
+function reorderBlock(fromUid: string, toUid: string, before: boolean): void {
+  const s = S();
+  const blocks = [...s.modes[s.mode].blocks];
+  const from = blocks.findIndex((b) => b.uid === fromUid);
+  if (from < 0) return;
+  const [moved] = blocks.splice(from, 1);
+  const to = blocks.findIndex((b) => b.uid === toUid);
+  if (to < 0) return;
+  blocks.splice(before ? to : to + 1, 0, moved);
+  store.setState((p) => ({
+    ...p,
+    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, presetName: '自定义' } },
+  }));
+  rebuildChain();
+  renderAll();
+  const spec = getFxSpec(moved.id);
+  toast(`「${spec?.name ?? moved.id}」已移到新位置`, 'info');
 }
 
 function duplicateBlock(uid: string): void {

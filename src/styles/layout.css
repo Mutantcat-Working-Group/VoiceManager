@@ -1289,3 +1289,54 @@
 .echo-shield-note:empty {
   display: none;
 }
+
+/* ----------------------------- 拖拽排序 ----------------------------- */
+
+.stompbox {
+  cursor: grab;
+}
+
+.stompbox[dragging='true'] {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
+/* 落点指示：左/右一道竖线 */
+.stompbox[data-drop='before']::before,
+.stompbox[data-drop='after']::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent, #d4a04a);
+  box-shadow: 0 0 8px rgba(212, 160, 74, 0.8);
+  pointer-events: none;
+}
+
+.stompbox[data-drop='before']::before {
+  left: -8px;
+}
+
+.stompbox[data-drop='after']::after {
+  right: -8px;
+}
+
+.stompbox {
+  position: relative;
+}
+
+.profile-hint {
+  margin: 6px 0 2px;
+  color: #a89e88;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.profile-hint {
+  margin: 6px 0 2px;
+  color: #a89e88;
+  font-size: 11px;
+  line-height: 1.5;
+}
