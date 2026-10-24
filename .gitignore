@@ -9,6 +9,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Python 字节码缓存（tools/i18n 的翻译数据脚本）
+__pycache__/
+*.pyc
+
 # Playwright CLI 临时产物
 .playwright-cli/
 output/playwright/
