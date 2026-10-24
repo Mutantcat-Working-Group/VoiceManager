@@ -1,0 +1,23 @@
+{
+  "name": "VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器",
+  "short_name": "VoiceManager",
+  "description": "浏览器里的音频工作站：在线扩音器、电吉他与贝斯监听及效果器、通用效果器架。21 个效果器含噪声门、音箱模拟、混响与变声，支持耳机线与 USB 声卡监听，9 种语言，无需安装。",
+  "id": "voicemanager.mutantcat.org/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#100e0b",
+  "theme_color": "#100e0b",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "categories": ["music", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1743,3 +1743,116 @@
   font-size: 11px;
   line-height: 1.5;
 }
+
+/* --------------------------------------------------------------------------
+   禁用 JavaScript 时的兜底页（<noscript>）
+   这份内容同时是给不执行 JS 的爬虫看的可抓取正文，所以排版要像样：
+   限制宽度、拉开行距、保留机架质感（细边框 + 琥珀色标题）。只在 JS 关闭时
+   才会显示，不影响正常渲染的界面。
+   -------------------------------------------------------------------------- */
+noscript {
+  display: block;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 24px 72px;
+  color: var(--c-ink);
+  font-family: var(--font-ui);
+  line-height: 1.75;
+}
+
+noscript header {
+  padding-bottom: 20px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--c-edge);
+}
+
+noscript h1 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 5vw, 40px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--c-ink);
+}
+
+noscript h2 {
+  margin: 40px 0 12px;
+  padding-left: 12px;
+  border-left: 3px solid var(--c-amber);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--c-amber-hi);
+  text-transform: uppercase;
+}
+
+noscript p,
+noscript li {
+  color: var(--c-ink-2);
+  font-size: 15px;
+}
+
+noscript strong {
+  color: var(--c-ink);
+  font-weight: 600;
+}
+
+noscript ul,
+noscript ol {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+
+noscript li + li {
+  margin-top: 6px;
+}
+
+noscript a {
+  color: var(--c-amber-hi);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+noscript a:hover {
+  color: var(--c-amber);
+}
+
+noscript kbd {
+  display: inline-block;
+  padding: 1px 7px;
+  border: 1px solid var(--c-edge);
+  border-radius: var(--r-sm);
+  background: var(--c-panel);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 220, 0.06);
+  color: var(--c-ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+noscript footer {
+  margin-top: 44px;
+  padding-top: 20px;
+  border-top: 1px solid var(--c-edge);
+  color: var(--c-ink-3);
+  font-size: 13px;
+}
+
+noscript footer p {
+  color: var(--c-ink-3);
+  font-size: 13px;
+}
+
+/* 需要 JS 的提示做成琥珀色告警条 */
+noscript header > p:last-of-type {
+  display: inline-block;
+  margin: 16px 0 0;
+  padding: 8px 14px;
+  border: 1px solid var(--c-amber-dim);
+  border-radius: var(--r-md);
+  background: rgba(242, 169, 43, 0.08);
+  color: var(--c-amber-hi);
+  font-size: 14px;
+}

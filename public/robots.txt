@@ -1,0 +1,8 @@
+# VoiceManager — https://voicemanager.mutantcat.org/
+# 单页应用，全部内容都在根路径下，没有需要屏蔽的目录。
+# 不屏蔽 /assets/ —— 那里的 JS / CSS 是渲染页面本身必需的，
+# 屏蔽掉会让爬虫拿到的是一份没有样式的空壳。
+User-agent: *
+Allow: /
+
+Sitemap: https://voicemanager.mutantcat.org/sitemap.xml

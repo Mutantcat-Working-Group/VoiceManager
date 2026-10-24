@@ -30,6 +30,13 @@ jobs:
       - name: Install
         run: npm ci
 
+      # 单页应用每次发布内容都会变，让 sitemap 的 <lastmod> 跟着构建日期走，
+      # 免得上线后忘记手改。public/ 下的文件由 Vite 原样拷进 dist/。
+      - name: Stamp sitemap lastmod
+        run: |
+          sed -i "s|<lastmod>[0-9-]*</lastmod>|<lastmod>$(date -u +%F)</lastmod>|" public/sitemap.xml
+          grep -o '<lastmod>[^<]*</lastmod>' public/sitemap.xml
+
       - name: Typecheck & Build
         run: npm run build
 

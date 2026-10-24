@@ -3,29 +3,351 @@
   VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器
   Copyright (C) 2026 Mutantcat Working Group
   License: GPL-3.0-or-later <https://www.gnu.org/licenses/>
+
+  SEO 说明见 README「SEO」章节。要点：
+    * 这是一个纯客户端 SPA，正文 DOM 由 JS 生成。为了不让「不执行 JS 的
+      爬虫」只看到一行空 <div>，<body> 末尾的 <noscript> 里放了一份语义化、
+      可被抓取的完整内容（标题 / 模式 / 效果器 / 工具 / FAQ）。
+    * 语言不体现在 URL 上（localStorage + navigator.languages 运行时探测），
+      所以不放 hreflang —— 每种语言必须有独立 URL 才是合法 hreflang，
+      九个语言都指向同一个 URL 会被判为重复。改用 og:locale:alternate +
+      JSON-LD 的 inLanguage / availableLanguage 表达多语言。
 -->
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ============================ 基础 ============================ -->
     <title>VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器</title>
     <meta
       name="description"
-      content="浏览器里的音频工作站：在线扩音器、电吉他与贝斯监听及效果器、通用效果器架。支持噪声门、均衡、压缩、失真、音箱模拟、延迟、混响、变声、调音器、节拍器与循环录音，可选择耳机线与 USB 声卡监听。"
+      content="浏览器里的音频工作站：在线扩音器、电吉他与贝斯监听及效果器、通用效果器架。21 个效果器含噪声门、均衡、压缩、失真、音箱模拟、延迟、混响与变声，另附调音器、节拍器、循环录音；支持耳机线与 USB 声卡监听，9 种语言，无需安装。"
     />
+    <meta
+      name="keywords"
+      content="在线扩音器,电吉他效果器,贝斯效果器,噪声门,浏览器效果器,吉他监听,耳机监听,USB 声卡,Web Audio,调音器,节拍器,循环录音"
+    />
+    <link rel="canonical" href="https://voicemanager.mutantcat.org/" />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+    <meta name="author" content="Mutantcat Working Group" />
+    <meta name="copyright" content="Copyright (C) 2026 Mutantcat Working Group" />
+    <meta name="license" content="https://www.gnu.org/licenses/gpl-3.0.html" />
+    <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#100e0b" />
+    <meta name="application-name" content="VoiceManager" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- ======================= Open Graph ======================= -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="VoiceManager" />
+    <meta property="og:url" content="https://voicemanager.mutantcat.org/" />
+    <meta property="og:title" content="VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器" />
+    <meta
+      property="og:description"
+      content="浏览器里的音频工作站：在线扩音器、电吉他与贝斯监听及效果器。21 个效果器含噪声门、音箱模拟、混响与变声，支持耳机线与 USB 声卡监听，9 种语言，无需安装。"
+    />
+    <meta property="og:image" content="https://voicemanager.mutantcat.org/og-cover.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="VoiceManager 机架面板：信号链上的噪声门、均衡、压缩、失真、音箱、箱体、延迟与混响，以及琥珀色输出电平表"
+    />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="fr_FR" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+
+    <!-- ====================== Twitter Card ====================== -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器" />
+    <meta
+      name="twitter:description"
+      content="浏览器里的音频工作站：在线扩音器、电吉他与贝斯监听及效果器。21 个效果器、耳机 / USB 监听、9 种语言，无需安装。"
+    />
+    <meta name="twitter:image" content="https://voicemanager.mutantcat.org/og-cover.png" />
+    <meta
+      name="twitter:image:alt"
+      content="VoiceManager 机架面板：信号链上的噪声门、均衡、压缩、失真、音箱、箱体、延迟与混响"
+    />
+
+    <!-- ====================== 图标 / PWA ====================== -->
     <link rel="icon" type="image/png" sizes="512x512" href="./icon.png" />
     <link rel="apple-touch-icon" href="./icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="VoiceManager" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="msapplication-TileColor" content="#100e0b" />
+
+    <!-- ======================== 字体预连 ======================== -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&family=Oswald:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- ====================== 结构化数据 ====================== -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "@id": "https://voicemanager.mutantcat.org/#app",
+        "name": "VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器",
+        "alternateName": ["VoiceManager", "VM-5000"],
+        "url": "https://voicemanager.mutantcat.org/",
+        "description": "浏览器里的音频工作站：在线扩音器、电吉他与贝斯监听及效果器、通用效果器架。21 个效果器含噪声门、均衡、压缩、失真、音箱模拟、延迟、混响与变声，另附调音器、节拍器、循环录音；支持耳机线与 USB 声卡监听，无需安装。",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any（浏览器内运行，无需安装）",
+        "browserRequirements": "Requires JavaScript. 依赖 Web Audio API 与 AudioWorklet。",
+        "isAccessibleForFree": true,
+        "inLanguage": ["zh-CN", "en", "ja", "fr", "de", "es", "pt-BR", "ru", "ko"],
+        "availableLanguage": [
+          { "@type": "Language", "name": "简体中文", "alternateName": "zh-CN" },
+          { "@type": "Language", "name": "English", "alternateName": "en" },
+          { "@type": "Language", "name": "日本語", "alternateName": "ja" },
+          { "@type": "Language", "name": "Français", "alternateName": "fr" },
+          { "@type": "Language", "name": "Deutsch", "alternateName": "de" },
+          { "@type": "Language", "name": "Español", "alternateName": "es" },
+          { "@type": "Language", "name": "Português (Brasil)", "alternateName": "pt-BR" },
+          { "@type": "Language", "name": "Русский", "alternateName": "ru" },
+          { "@type": "Language", "name": "한국어", "alternateName": "ko" }
+        ],
+        "featureList": [
+          "在线扩音器：麦克风变扩音器，可套用变声预设",
+          "电吉他监听与效果器：噪声门 / 过载 / 音箱模拟 / 箱体 / 延迟",
+          "贝斯监听与效果器：压缩 / DI / 法兹 / 箱体",
+          "通用效果器架：自由搭建效果链，任意顺序、任意数量",
+          "21 个效果器：噪声门、五段均衡、压缩、限幅、失真、激励、滤波、音箱、箱体、移相、法兰、延迟、混响、合唱、颤音、变调、八度音、环形调制、比特破碎、自动哇音、增益",
+          "三层防啸叫 / 防回声：回声消除、反馈抑制（自动凿窄带共振）、噪声门",
+          "调音器、节拍器、循环录音站、录音机",
+          "输出设备可选耳机线或 USB 声卡，支持标签页音频捕获与内置测试音源",
+          "信号链可拖动重排，也可插入到链中间；支持长按旁通（手机上代替右键）",
+          "9 种语言，首次打开按浏览器语言自动选择",
+          "参数与预设保存在本地，刷新不丢"
+        ],
+        "screenshot": "https://voicemanager.mutantcat.org/og-cover.png",
+        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+        "author": {
+          "@type": "Organization",
+          "name": "Mutantcat Working Group",
+          "url": "https://github.com/Mutantcat-Working-Group"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Mutantcat Working Group"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "为什么扩音器会出现越拖越长的回声，最后变成啸叫？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "扬声器放出的声音被麦克风拾回、再放大输出，就会形成回声，最终啸叫。VoiceManager 提供三层防护：①浏览器回声消除，用扬声器信号做参考从麦克风里减掉；②反馈抑制，持续监测输入频谱，发现又窄又亮又持续的单峰就自动在该频率凿一道浅凹槽，约 2 秒后自动恢复；③噪声门，低于阈值时静音。最彻底的办法是戴耳机——声音根本不回到麦克风。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "噪声门阈值应该设成多少？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "噪声门是整条链的第一级：输入低于阈值时按衰减深度压低，信号回来时按开启时间平滑放开，保持可以避免音符之间的正常停顿被误切。吉他 / 贝斯建议 -45 dB 左右，人声可到 -50 dB。阈值拖到 0 dB 以上门就永远开着，什么都挡不住——「输入与设备」面板顶部的回声防护检查表会实时盯着，配错会标红并给出一键修复。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "支持哪些语言？首次打开会用什么语言？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "支持 9 种语言：简体中文、English、日本語、Français、Deutsch、Español、Português (Brasil)、Русский、한국어。首次打开按浏览器语言自动选择（localStorage 里有上次选择时优先），切换入口在右栏「输入与设备」面板顶部。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "需要安装插件或下载软件吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "不需要。整个应用运行在浏览器里，基于 Web Audio API 与 AudioWorklet，混响等脉冲响应也是程序化实时生成的，没有任何外部音频文件。打开网页、点电源、允许麦克风权限即可使用。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "可以用耳机线和 USB 声卡监听吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "可以。「输出设备」里会列出系统的每个输出，选中耳机线或 USB 声卡即可；不支持选择设备的浏览器会保持系统默认输出。音源可以是麦克风、标签页 / 系统音频，或内置测试音源。"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>
-    <noscript>VoiceManager 需要启用 JavaScript 才能运行。</noscript>
+
+    <!--
+      以下内容只在禁用 JavaScript 时显示。纯客户端渲染的页面如果不放这份东西，
+      不执行 JS 的爬虫（含多数社交预览抓取器）只能看到一个空 <div>。
+      内容与界面实际功能一一对应，不是给搜索引擎看的堆砌文本。
+    -->
+    <noscript>
+      <header>
+        <h1>VoiceManager — 在线扩音器 / 电吉他 / 贝斯 监听与效果器</h1>
+        <p>
+          MUTANTCAT · VM-5000 · 浏览器音频工作站。整个应用运行在浏览器里，无需安装；
+          基于 Web Audio API 与 AudioWorklet，混响等脉冲响应程序化实时生成，不含外部音频文件。
+        </p>
+        <p><strong>本应用需要启用 JavaScript 才能运行。</strong></p>
+      </header>
+
+      <main>
+        <section>
+          <h2>四种模式</h2>
+          <ul>
+            <li>
+              <strong>在线扩音器（PA）</strong>：麦克风变扩音器，均衡 / 混响 / 压缩 / 变声 /
+              录音，附变声预设（原声、萝莉音、机器人音、空灵音、大叔音、电话音、怪兽音、清晰讲话、舞台喊话）。
+            </li>
+            <li>
+              <strong>电吉他（GTR）</strong>：吉他监听与效果器，噪声门 / 过载 / 音箱模拟 / 箱体 /
+              延迟，附清音晨光、布鲁斯过载、英式摇滚、高增益金属、放克净音、氛围太空、卧室练习等预设。
+            </li>
+            <li>
+              <strong>贝斯（BASS）</strong>：贝斯监听与效果器，压缩 / DI / 法兹 / 箱体，
+              附指弹、拨片、拍弦 Slap、法兹、复古电子管、纯净 DI、卧室练习等预设。
+            </li>
+            <li>
+              <strong>效果器架（FX）</strong>：自由搭建效果链，任意顺序、任意数量，
+              附基础链路、Lo-Fi 磁带、宇宙 Pad、人声后期、哇音节奏等预设。
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>21 个效果器</h2>
+          <p>
+            噪声门、五段图示均衡、压缩、限幅、失真（过载 / 失真 / 法兹 / 电子管四种削波）、激励、
+            滤波 / 哇音、音箱模拟、箱体模拟、移相器、法兰、延迟、混响、合唱、颤音 / 震音、
+            变调、八度音、环形调制、比特破碎、自动哇音、增益。
+          </p>
+          <p>
+            信号链可以<strong>直接拖着模块在链上换位置</strong>，也可以把效果器仓库里的效果器
+            <strong>拖到链上任意间隙插入</strong>；旁通可以点模块上的小绿灯、右键，或长按模块
+            0.5 秒（手机上用长按，因为没法右键）。
+          </p>
+        </section>
+
+        <section>
+          <h2>工具</h2>
+          <ul>
+            <li>调音器：十二平均律音名、八度与音分偏差</li>
+            <li>节拍器：可设速度与拍号</li>
+            <li>循环录音站：按小节数录一层，自动无缝循环，可多次叠加</li>
+            <li>录音机：录音列表、播放、下载、删除</li>
+            <li>电平 / 频谱：输入输出 VU 表与实时频谱</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>防啸叫 / 防回声</h2>
+          <p>
+            扬声器放出的声音被麦克风拾回、再放大输出，就会形成越拖越长的回声，最终变成啸叫。
+            三层防护：
+          </p>
+          <ol>
+            <li><strong>戴耳机</strong>——最彻底，声音根本不回到麦克风。</li>
+            <li>
+              <strong>浏览器回声消除</strong>——用扬声器信号做参考，从麦克风里减掉它，效果最好。
+            </li>
+            <li>
+              <strong>反馈抑制</strong>——持续监测输入频谱，发现又窄又亮又持续的单峰就自动在该频率凿一道浅凹槽；
+              频率消失约 2 秒后凹槽自动恢复，不会在音色上留疤痕。
+            </li>
+          </ol>
+          <p>
+            另外建议关闭自动增益控制：它会把安静的反馈残余一起放大，更容易起振。
+            「输入与设备」面板顶部的回声防护检查表会实时盯着这三层，配错会标红并说清原因，
+            多数情况旁边就有修复按钮。
+          </p>
+        </section>
+
+        <section>
+          <h2>噪声门怎么调</h2>
+          <p>
+            噪声门是整条链的第一级：当输入低于「阈值」时按「衰减深度」压低，信号回来时按
+            「开启」时间平滑放开，「保持」可以避免音符之间的正常停顿被误切。吉他 / 贝斯建议阈值
+            -45 dB 左右，人声可到 -50 dB。阈值拖到 0 dB 以上门就永远开着，什么都挡不住。
+          </p>
+        </section>
+
+        <section>
+          <h2>音源与设备</h2>
+          <p>
+            音源可以是麦克风 / 线路输入、标签页 / 系统音频，或内置测试音源（正弦波、粉红噪声、
+            拨弦、扫频、和弦）。「输出设备」里会列出系统的每个输出，选中耳机线或 USB 声卡即可；
+            不支持选择设备的浏览器会保持系统默认输出。采集处理预设提供「防啸叫优先」与
+            「音质优先」两档。
+          </p>
+          <p>
+            有时打开网页列不出设备——浏览器只在授权后才暴露设备标签。点「授权并刷新设备列表」，
+            或插入新设备后稍等片刻（程序会定时轮询并自动更新列表）。
+          </p>
+        </section>
+
+        <section>
+          <h2>多语言</h2>
+          <p>
+            支持 9 种语言：简体中文、English、日本語、Français、Deutsch、Español、
+            Português (Brasil)、Русский、한국어。首次打开按浏览器语言自动选择，之后可在右栏
+            「输入与设备」面板顶部手动切换，选择会被记住。
+          </p>
+        </section>
+
+        <section>
+          <h2>快捷键</h2>
+          <ul>
+            <li><kbd>空格</kbd> 电源开关　<kbd>1</kbd>–<kbd>4</kbd> 切换模式</li>
+            <li><kbd>M</kbd> 节拍器　<kbd>R</kbd> 录音　<kbd>B</kbd> 旁通当前模块</li>
+            <li>旋钮：上下拖动调节，<kbd>Shift</kbd> 微调，滚轮微调，双击复位</li>
+          </ul>
+        </section>
+      </main>
+
+      <footer>
+        <p>
+          所有参数与预设自动保存在浏览器本地（localStorage），录音文件保存在浏览器内存中，
+          刷新页面后会清空。
+        </p>
+        <p>
+          VoiceManager 采用 GNU General Public License v3.0 或更高版本开源，
+          源码见
+          <a href="https://github.com/Mutantcat-Working-Group/VoiceManager">GitHub 仓库</a>。
+        </p>
+      </footer>
+    </noscript>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

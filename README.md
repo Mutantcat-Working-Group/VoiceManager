@@ -296,7 +296,9 @@ src/
   styles/                   设计令牌 + 控件 + 布局
 .github/workflows/deploy.yml  push main → GitHub Pages
 tools/i18n/                翻译数据 + 词典生成脚本
+tools/og/                  社交分享图（og-cover.png）生成脚本
 icon.png                    应用图标（favicon + apple-touch-icon）
+public/                    robots.txt / sitemap.xml / CNAME / manifest / og-cover.png
 LICENSE                     GNU GPL v3.0
 ```
 
@@ -329,6 +331,90 @@ LICENSE                     GNU GPL v3.0
 | 输出设备选择 | Chrome 110+（`setSinkId`），其余浏览器保持系统默认输出 |
 | 标签页音频捕获 | Chrome / Edge（`getDisplayMedia`） |
 | 录音 | 支持 `MediaRecorder` 的浏览器 |
+
+---
+
+## SEO
+
+单页应用 + 客户端渲染，SEO 的核心难点是「爬虫拿到的 HTML 里没有正文」。
+这个项目的做法分四层。
+
+### 1. 可抓取的兜底正文（`<noscript>`）
+
+整个界面是 JS 生成的 DOM，不执行 JS 的爬虫（含多数社交预览抓取器）打开页面
+只能看到一个空 `<div id="app">`。所以在 `<body>` 末尾放了一份**语义化、与界面功能
+一一对应**的 `<noscript>` 内容：`<header>` / `<main>` / `<section>` / `<footer>`，
+含 `h1`、八个 `h2`、模式清单、21 个效果器清单、工具、防啸叫、噪声门调法、
+音源与设备、多语言、快捷键。约 1800 字正文，配 `src/styles/layout.css` 里的
+`noscript { … }` 样式（限宽 860px、琥珀色标题、键帽样式），禁用 JS 的访问者
+看到的也是一个像样的页面而不是裸文本。
+
+> 这份内容不是给搜索引擎堆砌的关键词——它就是「关掉 JS 后这个应用能干什么」的说明。
+
+### 2. Meta 与社交卡片
+
+| 类别 | 内容 |
+| --- | --- |
+| 基础 | `title` / `description` / `keywords` / `robots`（`max-image-preview:large`）/ `canonical` / `author` / `license` |
+| Open Graph | `og:type` `og:url` `og:title` `og:description` `og:image`（含 `width`/`height`/`alt`）/ `og:site_name` / `og:locale` + 8 个 `og:locale:alternate` |
+| Twitter | `twitter:card=summary_large_image` + `title` / `description` / `image` / `image:alt` |
+| PWA | `manifest.webmanifest`、`apple-mobile-web-app-*`、`msapplication-TileColor`、`color-scheme=dark` |
+
+`og-cover.png` 是 1200×630 的分享图，由 `tools/og/make_cover.py` 生成——
+配色与文案直接取自 `src/styles/tokens.css` 和页面 `<title>`，避免分享图和落地页
+说的是两件事。
+
+### 3. 结构化数据（JSON-LD）
+
+两段，都在 `index.html` 里：
+
+- **`WebApplication`**：`featureList` 列全功能、`inLanguage` / `availableLanguage`
+  列 9 种语言、`browserRequirements` 说明依赖 Web Audio API、`offers` 标免费、
+  `license` 指向 GPL-3.0、`screenshot` 指向分享图。
+- **`FAQPage`**：五条真实问答（回声/啸叫成因、噪声门阈值、语言、是否需安装、
+  耳机/USB 声卡），答案内容取自帮助面板，有机会进 Google 的富媒体摘要。
+
+### 4. 抓取协议与域名
+
+| 文件 | 作用 |
+| --- | --- |
+| `public/robots.txt` | 放行全部，指向 sitemap。**不屏蔽 `/assets/`** —— 那里的 JS / CSS 是渲染页面本身必需的，屏蔽掉爬虫拿到的是一份没有样式的空壳 |
+| `public/sitemap.xml` | 单页应用只有一个可索引 URL，`<lastmod>` 发布时手动更新 |
+| `public/CNAME` | 把自定义域名 `voicemanager.mutantcat.org` 纳入版本控制，不至于仓库设置一丢站点就回落到 `*.github.io` |
+
+`public/` 下的文件由 Vite 原样拷到 `dist/` 根，所以 sitemap / robots 里用**绝对
+URL**（sitemap 规范要求）是安全的，不受 `base:'./'` 影响。
+
+### 关于 hreflang：这里故意不放
+
+本项目有 9 种语言，但**语言不体现在 URL 上**——靠 `localStorage` +
+`navigator.languages` 运行时探测，所有语言共用同一个地址。而 hreflang 的硬性
+前提是「每种语言必须有独立 URL」，九个语言都指向同一个 URL 会被判定为重复内容，
+反而有害。所以改用 `og:locale` / `og:locale:alternate` 和 JSON-LD 的
+`inLanguage` / `availableLanguage` 来表达多语言；`<html lang>` 由 `initI18n()`
+在启动时同步，屏幕阅读器和浏览器翻译会跟着走。
+
+将来若要做按 URL 分语言（`/en/`、`/ja/`…），届时再补 hreflang 才是正确的。
+
+### 本地验证
+
+```bash
+npm run build
+npx vite preview --port 4174
+curl -s localhost:4174/robots.txt
+curl -s localhost:4174/sitemap.xml
+```
+
+禁 JS 看兜底页（这份正是不执行 JS 的爬虫看到的内容）：
+
+```js
+const { chromium } = require('playwright');
+const b = await chromium.launch();
+const p = await b.newPage({ javaScriptEnabled: false });
+await p.goto('http://localhost:4174/');
+await p.screenshot({ path: 'noscript.png', fullPage: true });
+```
+
 
 ---
 
