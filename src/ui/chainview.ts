@@ -28,6 +28,8 @@ export interface ChainHandlers {
   onReorder?(fromUid: string, toUid: string, before: boolean): void;
   /** 触屏排序：HTML5 拖放在触摸设备上不生效，用上下按钮代替 */
   onMove?(uid: string, dir: -1 | 1): void;
+  /** 从效果器仓库拖入：在 index 处插入新效果器 */
+  onInsertFx?(fxId: string, index: number): void;
 }
 
 export interface ChainViewHandle {
@@ -40,6 +42,9 @@ interface Entry {
   led: ReturnType<typeof createLed>;
   status: HTMLElement;
 }
+
+/** 拖拽数据里用来区分"仓库新效果器"和"链上既有模块"的自定义类型 */
+export const FX_DRAG_TYPE = 'application/x-voicemanager-fx';
 
 export function createChainView(handlers: ChainHandlers): ChainViewHandle {
   const root = el('div', 'chain-track');
@@ -99,6 +104,7 @@ export function createChainView(handlers: ChainHandlers): ChainViewHandle {
     box.appendChild(moves);
     box.appendChild(status);
     box.addEventListener('click', (e) => {
+      if (holdFired) return; // 长按已处理，这一次点击忽略
       const target = e.target as HTMLElement;
       if (target.closest('.led')) handlers.onToggleBypass(b.uid);
       else if (target.closest('.stompbox-move')) return; // 排序按钮自己处理
@@ -108,6 +114,44 @@ export function createChainView(handlers: ChainHandlers): ChainViewHandle {
       e.preventDefault();
       handlers.onToggleBypass(b.uid);
     });
+
+    /*
+     * 长按旁通 —— 手机上没法右键，用长按代替。
+     * 按住 480ms 触发，触发后抑制随后的 click（否则会变成"选中该模块"）。
+     * 手指一动浏览器会发 pointercancel，计时器随之取消，不会和滚动打架。
+     */
+    let holdTimer: number | null = null;
+    let holdFired = false;
+    const cancelHold = () => {
+      if (holdTimer !== null) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      delete box.dataset.hold;
+    };
+    box.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+      holdFired = false;
+      cancelHold();
+      holdTimer = window.setTimeout(() => {
+        holdTimer = null;
+        holdFired = true;
+        box.dataset.hold = 'true';
+        handlers.onToggleBypass(b.uid);
+        if (navigator.vibrate) navigator.vibrate(12);
+      }, 480);
+    });
+    box.addEventListener('pointerup', cancelHold);
+    box.addEventListener('pointercancel', cancelHold);
+    box.addEventListener('pointerleave', cancelHold);
+    box.addEventListener('click', (e) => {
+      if (holdFired) {
+        holdFired = false;
+        e.preventDefault();
+        e.stopPropagation();
+        cancelHold();
+      }
+    }, true);
 
     /* 拖拽排序：直接拖着效果器盒在链上换位置（借鉴 GuitarStack 的 pedalboard 交互） */
     box.draggable = true;
@@ -146,6 +190,53 @@ export function createChainView(handlers: ChainHandlers): ChainViewHandle {
     });
     return { box, led, status };
   };
+
+  /* 拖入落点指示线 */
+  const marker = el('div', 'chain-insert-marker');
+  marker.dataset.on = 'false';
+
+  const clearMarker = () => {
+    if (marker.parentNode) marker.parentNode.removeChild(marker);
+  };
+
+  /** 按 clientX 算出应该插到第几个效果器之前 */
+  const indexAt = (x: number): number => {
+    const boxes = [...root.querySelectorAll<HTMLElement>('.stompbox')];
+    for (let i = 0; i < boxes.length; i++) {
+      const r = boxes[i].getBoundingClientRect();
+      if (x < r.left + r.width / 2) return i;
+    }
+    return boxes.length;
+  };
+
+  const showMarker = (x: number): void => {
+    const idx = indexAt(x);
+    const boxes = [...root.querySelectorAll<HTMLElement>('.stompbox')];
+    clearMarker();
+    if (idx >= boxes.length) root.appendChild(marker);
+    else root.insertBefore(marker, boxes[idx]);
+    marker.dataset.on = 'true';
+  };
+
+  root.addEventListener('dragover', (e) => {
+    const types = e.dataTransfer?.types;
+    if (!types || !types.includes(FX_DRAG_TYPE)) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    showMarker(e.clientX);
+  });
+  root.addEventListener('dragleave', (e) => {
+    if (e.target === root) clearMarker();
+  });
+  root.addEventListener('drop', (e) => {
+    const fxId = e.dataTransfer?.getData(FX_DRAG_TYPE);
+    if (!fxId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const idx = indexAt(e.clientX);
+    clearMarker();
+    handlers.onInsertFx?.(fxId, idx);
+  });
 
   return {
     el: root,

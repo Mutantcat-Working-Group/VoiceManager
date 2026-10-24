@@ -34,7 +34,7 @@ import {
   createToggle,
   el,
 } from './ui/components';
-import { createChainView, type ChainBlockView } from './ui/chainview';
+import { createChainView, FX_DRAG_TYPE, type ChainBlockView } from './ui/chainview';
 import { createMeterBank, createSpectrum } from './ui/meters';
 
 /* ------------------------------------------------------------------ */
@@ -241,6 +241,7 @@ const chainView = createChainView({
   onAdd: () => toggleLibrary(true),
   onReorder: (fromUid, toUid, before) => reorderBlock(fromUid, toUid, before),
   onMove: (uid, dir) => moveBlock(uid, dir),
+  onInsertFx: (fxId, index) => insertBlock(fxId, index),
 });
 chainbar.append(chainHead, chainView.el);
 
@@ -299,6 +300,37 @@ workarea.appendChild(presetPanel.el);
 /* 效果器仓库 */
 const library = createPanel({ title: '效果器仓库', code: 'LIB', collapsible: true, startCollapsed: false });
 const libBody = library.body;
+/** 插入位置：链尾 / 所选模块前 / 所选模块后 */
+type InsertPos = 'tail' | 'before' | 'after';
+let insertPos: InsertPos = 'after';
+
+/* 插入位置选择：点仓库里的效果器时插到哪儿 */
+const insertSeg = createSegmented({
+  label: '插入位置',
+  options: [
+    { value: 'after', label: '所选后' },
+    { value: 'before', label: '所选前' },
+    { value: 'tail', label: '队尾' },
+  ],
+  value: insertPos,
+  onChange: (v) => {
+    insertPos = v as InsertPos;
+    renderInsertHint();
+  },
+});
+const insertHint = el('p', 'panel-hint insert-hint');
+function renderInsertHint(): void {
+  const sel = selectedBlock();
+  if (insertPos === 'tail' || !sel) {
+    insertHint.textContent = '点击效果器即加到队尾；也可以直接把效果器拖到链上任意间隙插入。';
+  } else {
+    const spec = getFxSpec(sel.id);
+    insertHint.textContent = `将插入到「${spec?.name ?? sel.id}」${
+      insertPos === 'before' ? '之前' : '之后'
+    }；也可以直接把效果器拖到链上任意间隙插入。`;
+  }
+}
+renderInsertHint();
 const libGroups = el('div', 'fx-library');
 for (const cat of FX_CATEGORY_ORDER) {
   const specs = allFxSpecs().filter((s) => s.category === cat);
@@ -315,12 +347,20 @@ for (const cat of FX_CATEGORY_ORDER) {
     name.textContent = spec.name;
     chip.append(mono, name);
     chip.addEventListener('click', () => addBlock(spec.id));
+    /* 拖到链上任意位置插入，不必只能加到队尾 */
+    chip.draggable = true;
+    chip.addEventListener('dragstart', (e) => {
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'copy';
+        e.dataTransfer.setData(FX_DRAG_TYPE, spec.id);
+      }
+    });
     items.appendChild(chip);
   }
   group.append(label, items);
   libGroups.appendChild(group);
 }
-libBody.appendChild(libGroups);
+libBody.append(insertSeg.el, insertHint, libGroups);
 workarea.appendChild(library.el);
 
 /* ------------------------------------------------------------------ */
@@ -813,6 +853,9 @@ helpBody.innerHTML = `
       <li>选择「输出设备」为耳机线或 USB 声卡，戴上耳机监听。</li>
       <li>点击信号链里的模块编辑参数，点灯或右键可旁通该模块。</li>
       <li>也可以<b>直接拖着模块在链上换位置</b>——比如把混响拖到音箱前面，松手即生效。</li>
+      <li><b>插到中间</b>：从「效果器仓库」里把效果器直接拖到链上任意间隙，落点有竖线提示；
+        或者用仓库顶部的「插入位置」（所选前 / 所选后 / 队尾）再点效果器。</li>
+      <li>旁通：点模块上的小绿灯、右键、或<b>长按模块</b>（手机上用长按，因为没法右键）。</li>
     </ol>
   </div>
   <div>
@@ -840,6 +883,8 @@ helpBody.innerHTML = `
       <li>窄屏下三个设备下拉会自动排成两列；所有可点区域都做到了 44 px 以上。</li>
       <li>效果器的排序：桌面端直接拖着盒子在链上换位置；触摸端 HTML5 拖放不生效，
         改用盒子上的 <b>▲ / ▼</b> 按钮（仅在触摸或窄屏下显示）。</li>
+      <li>插到链中间：从仓库把效果器拖到链上任意间隙；或先用仓库顶部的「插入位置」选好，再点效果器。</li>
+      <li>旁通模块：点小绿灯，或<b>长按模块 0.5 秒</b>（手机上用长按代替右键）。</li>
       <li>链很长时左右滑动查看，头部有「← 左右滑动查看整条链 →」提示。</li>
       <li>旋钮 / 推子用指针事件，触摸拖动顺滑，且不会连带滚动页面。</li>
     </ul>
@@ -1073,6 +1118,7 @@ function renderAll(): void {
   renderStatusbar();
   renderStatusStrip();
   renderEchoShield();
+  renderInsertHint();
 }
 
 /* ------------------------------------------------------------------ */
@@ -1126,11 +1172,11 @@ async function ensureChain(): Promise<void> {
   rebuildChain();
 }
 
-function addBlock(fxId: string): void {
+/** 插入位置：链尾 / 所选模块前 / 所选模块后 */
+function insertBlock(fxId: string, index: number): void {
   const s = S();
   const blocks = [...s.modes[s.mode].blocks];
-  const sel = selectedBlock();
-  const at = sel ? blocks.findIndex((b) => b.uid === sel.uid) + 1 : blocks.length;
+  const at = Math.max(0, Math.min(blocks.length, index));
   const block = makeBlock(fxId);
   blocks.splice(at, 0, block);
   store.setState((p) => ({
@@ -1138,10 +1184,31 @@ function addBlock(fxId: string): void {
     modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, selectedUid: block.uid, presetName: '自定义' } },
   }));
   rebuildChain();
-  renderFxPanel();
-  renderPresets();
-  renderStatusbar();
-  library.collapse();
+  renderAll();
+  const spec = getFxSpec(fxId);
+  const pos = at === blocks.length ? '队尾' : `第 ${at + 1} 级`;
+  toast(`「${spec?.name ?? fxId}」已插入${pos}`, 'info');
+}
+
+function addBlock(fxId: string): void {
+  const s = S();
+  const blocks = [...s.modes[s.mode].blocks];
+  const sel = selectedBlock();
+  const selIdx = sel ? blocks.findIndex((b) => b.uid === sel.uid) : -1;
+  const at =
+    insertPos === 'tail' || selIdx < 0
+      ? blocks.length
+      : insertPos === 'before'
+        ? selIdx
+        : selIdx + 1;
+  const block = makeBlock(fxId);
+  blocks.splice(at, 0, block);
+  store.setState((p) => ({
+    ...p,
+    modes: { ...p.modes, [p.mode]: { ...p.modes[p.mode], blocks, selectedUid: block.uid, presetName: '自定义' } },
+  }));
+  rebuildChain();
+  renderAll();
 }
 
 function removeBlock(uid: string): void {

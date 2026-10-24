@@ -1690,3 +1690,48 @@
     gap: 6px;
   }
 }
+
+/* --------------------------- 插入位置 / 拖入落点 --------------------------- */
+
+.insert-hint {
+  margin: 8px 0 10px;
+  color: #a89e88;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* 从仓库拖入时，链上显示的插入落点竖线 */
+.chain-insert-marker {
+  flex: none;
+  align-self: stretch;
+  width: 3px;
+  margin: 0 1px;
+  border-radius: 2px;
+  background: var(--c-amber-hi);
+  box-shadow: 0 0 10px rgba(255, 200, 97, 0.9);
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.chain-insert-marker[data-on='true'] {
+  opacity: 1;
+}
+
+/* 仓库里的效果器可拖拽的视觉提示 */
+.fx-chip {
+  cursor: grab;
+}
+
+.fx-chip:active {
+  cursor: grabbing;
+}
+
+/* 长按旁通的按住反馈 */
+.stompbox[data-hold='true'] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 4px 12px rgba(0, 0, 0, 0.6),
+    0 0 0 2px rgba(242, 169, 43, 0.75),
+    0 0 20px rgba(242, 169, 43, 0.3);
+  transform: translateY(1px);
+}
