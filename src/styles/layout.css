@@ -40,6 +40,14 @@
 
 .brand {
   display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+/* LOGO 与品牌文字合成一行；语言下拉单独占它上面那一行，落在机头左上角 */
+.brand-row {
+  display: flex;
   align-items: center;
   gap: 13px;
   min-width: 0;
@@ -1750,13 +1758,12 @@
   transform: translateY(1px);
 }
 
-/* 语言选择（左侧品牌区，品牌副标题下方）
-   放在最右侧时它和电源、设备下拉并排，被抬成了和控制钮同级的东西，太抢眼；
-   语言是设一次就不再动的偏好，收在品牌信息下面更合乎归属。 */
+/* 语言选择（机头左上角，LOGO 与品牌文字上方）
+   不和品牌名同行，也不和右侧的电源 / 设备下拉并列——那两个位置一个语义
+   不对、一个太抢眼。语言是设一次就不再动的偏好，压在左上角最合乎归属。 */
 .lang-cluster {
   display: flex;
   align-items: center;
-  margin-top: 9px;
 }
 
 .lang-cluster .select {

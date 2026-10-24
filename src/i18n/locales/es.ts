@@ -490,5 +490,5 @@ export const es: Dict = {
   '语言': 'Idioma',
   '首次打开时按浏览器语言自动选择；切换后会被记住。当前浏览器语言：{n0}': 'Se elige automáticamente según el idioma del navegador la primera vez; tu elección se recuerda. Idioma actual del navegador: {n0}',
   '输出补偿': 'Compensación de salida',
-  '界面语言：左上角品牌区的下拉框可以切换 9 种语言，首次打开会按浏览器语言自动选择。': 'Idioma de la interfaz: cambia entre 9 idiomas desde el menú desplegable del bloque de marca de la parte superior izquierda; la primera vez se usa el idioma del navegador.',
+  '界面语言：机头左上角的下拉框可以切换 9 种语言，首次打开会按浏览器语言自动选择。': 'Idioma de la interfaz: cambia entre 9 idiomas desde el menú desplegable de la esquina superior izquierda del panel frontal; la primera vez se usa el idioma del navegador.',
 };

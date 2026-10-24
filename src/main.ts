@@ -100,6 +100,22 @@ const LOGO_SVG = `<svg viewBox="0 0 64 64" aria-hidden="true">
 
 const header = el('header', 'nameplate');
 
+/*
+ * 语言选择独占机头左上角的一行，压在 LOGO 与品牌文字上方。
+ * 试过两个位置都不合适：塞在「输入与设备」面板里和设备选项语义冲突；
+ * 放机头最右侧又和电源、主音量、三个设备下拉并列，被抬成了和控制钮
+ * 同级的东西太抢眼。语言是设一次就不再动的偏好，收在左上角最合乎归属。
+ * 用原生 <select>：9 个选项，下拉比一排分段按钮省一条横幅。
+ */
+const langSelect = createSelect({
+  label: t('语言'),
+  value: getLocale(),
+  options: LOCALES.map((l) => ({ value: l.id, label: l.native })),
+  onChange: (v) => setLocale(v as Locale),
+});
+const langCluster = el('div', 'lang-cluster');
+langCluster.appendChild(langSelect.el);
+
 const brand = el('div', 'brand');
 const mark = el('div', 'brand-mark');
 mark.innerHTML = LOGO_SVG;
@@ -110,8 +126,11 @@ const brandSub = el('div', 'brand-sub');
 brandSub.textContent = t('MUTANTCAT · VM-5000 · 浏览器音频工作站');
 brandText.appendChild(brandName);
 brandText.appendChild(brandSub);
-brand.appendChild(mark);
-brand.appendChild(brandText);
+// LOGO 与品牌文字合成一行，语言下拉单独占它上面那一行——这样下拉就在机头的
+// 左上角，紧贴 LOGO 上方，而不是和品牌名并排
+const brandRow = el('div', 'brand-row');
+brandRow.append(mark, brandText);
+brand.append(langCluster, brandRow);
 
 const powerCluster = el('div', 'power-cluster');
 const powerSwitch = el('div', 'power-switch');
@@ -196,24 +215,7 @@ function renderStatusStrip(): void {
 statusStrip.append(chipPower, chipSr, chipLatency, chipEngine);
 ioCluster.append(kindSelect.el, inputDeviceSelect.el, outputDeviceSelect.el, statusStrip);
 
-/*
- * 语言选择挂在左侧品牌区，不单独占机头的一列——放在最右侧时它和电源、
- * 设备下拉并排，视觉上被抬成了和控制钮同级的东西，而语言是设一次就不再动
- * 的偏好，不该那么抢眼。收在品牌副标题下方，归属「这是谁 + 全局设置」这一组。
- * 用原生 <select>：9 个选项，下拉比一排分段按钮省一条横幅。
- */
-const langSelect = createSelect({
-  label: t('语言'),
-  value: getLocale(),
-  options: LOCALES.map((l) => ({ value: l.id, label: l.native })),
-  onChange: (v) => setLocale(v as Locale),
-});
-const langCluster = el('div', 'lang-cluster');
-langCluster.appendChild(langSelect.el);
-brandText.appendChild(langCluster);
-
 header.append(brand, powerCluster, ioCluster);
-
 /* ------------------------------------------------------------------ */
 /* 模式选择                                                            */
 /* ------------------------------------------------------------------ */
@@ -878,7 +880,7 @@ function renderHelp(): string {
       <li>${t('在「音源类型」里选择麦克风 / 标签页音频 / 内置测试音源。')}</li>
       <li>${t('选择「输出设备」为耳机线或 USB 声卡，戴上耳机监听。')}</li>
       <li>${t('点击信号链里的模块编辑参数，点灯或右键可旁通该模块。')}</li>
-      <li>${t('界面语言：左上角品牌区的下拉框可以切换 9 种语言，首次打开会按浏览器语言自动选择。')}</li>
+      <li>${t('界面语言：机头左上角的下拉框可以切换 9 种语言，首次打开会按浏览器语言自动选择。')}</li>
       <li>${t('也可以{b}直接拖着模块在链上换位置{/b}——比如把混响拖到音箱前面，松手即生效。', { b: '<b>', '/b': '</b>' })}</li>
       <li>${t('{b}插到中间{/b}：从「效果器仓库」里把效果器直接拖到链上任意间隙，落点有竖线提示；或者用仓库顶部的「插入位置」（所选前 / 所选后 / 队尾）再点效果器。', { b: '<b>', '/b': '</b>' })}</li>
       <li>${t('旁通：点模块上的小绿灯、右键、或{b}长按模块{/b}（手机上用长按，因为没法右键）。', { b: '<b>', '/b': '</b>' })}</li>
