@@ -1,0 +1,18 @@
+{
+  "name": "voicemanager",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "VoiceManager - 在线扩音器 / 电吉他 / 贝斯 监听与效果器，基于 Web Audio API，支持噪声门、设备管理与耳机、USB 声卡监听。",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview --port 4173"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}

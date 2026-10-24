@@ -1,0 +1,236 @@
+/* ==========================================================================
+   VoiceManager — 设计令牌
+   美学方向：工业音频机架（rack unit / stompbox）。
+   深色拉丝金属机身、丝印标签、氙灯 LED、琥珀色表头背光。
+   ========================================================================== */
+
+:root {
+  /* 机身 */
+  --c-void: #060505;
+  --c-chassis: #100e0b;
+  --c-chassis-2: #17140f;
+  --c-panel: #1c1812;
+  --c-panel-2: #241f18;
+  --c-panel-3: #2b251c;
+  --c-edge: #3b342b;
+  --c-edge-hi: #574d40;
+  --c-screw: #0b0a08;
+
+  /* 文字 */
+  --c-ink: #ede6d8;
+  --c-ink-2: #a89e8b;
+  --c-ink-3: #756d5e;
+  --c-ink-4: #4b463c;
+
+  /* 信号色 */
+  --c-amber: #f2a92b;
+  --c-amber-hi: #ffc861;
+  --c-amber-dim: #6d4a10;
+  --c-green: #74f59a;
+  --c-green-dim: #14512c;
+  --c-red: #ff5343;
+  --c-blue: #74b8ff;
+
+  /* 字体 */
+  --font-display: 'Oswald', 'Noto Sans SC', sans-serif;
+  --font-ui: 'Barlow', 'Noto Sans SC', sans-serif;
+  --font-mono: 'DM Mono', 'Noto Sans SC', monospace;
+
+  /* 尺寸 */
+  --r-sm: 3px;
+  --r-md: 5px;
+  --r-lg: 9px;
+  --gap: 14px;
+  --knob-size: 62px;
+
+  /* 阴影 */
+  --sh-panel: 0 1px 0 rgba(255, 245, 220, 0.05) inset, 0 -1px 0 rgba(0, 0, 0, 0.6) inset,
+    0 10px 26px rgba(0, 0, 0, 0.55);
+  --sh-knob: 0 2px 5px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+/* ------------------------------- 基础重置 ------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--c-void);
+  color: var(--c-ink);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* 机身氛围：顶部冷光 + 底部琥珀反光 + 颗粒 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(900px 420px at 12% -8%, rgba(116, 184, 255, 0.07), transparent 70%),
+    radial-gradient(760px 380px at 92% 108%, rgba(242, 169, 43, 0.06), transparent 70%);
+}
+
+/* 胶片颗粒 */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+select,
+input {
+  font-family: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--c-amber);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--c-amber);
+  color: #16120a;
+}
+
+/* 滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-edge) transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--c-edge-hi), var(--c-edge));
+  border-radius: 9px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ------------------------------- 通用工具 ------------------------------- */
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.silk {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 10px;
+  color: var(--c-ink-3);
+}
+
+.dim {
+  color: var(--c-ink-3);
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* 拉丝金属表面 */
+.metal {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.016) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #221d16 0%, #14110d 55%, #0d0b09 100%);
+}
+
+/* 螺丝 */
+.screw {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #4a4238, #100e0b 70%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+.screw::after {
+  content: '';
+  position: absolute;
+  inset: 3.5px 1px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 1px;
+  transform: rotate(calc(var(--slot, 24) * 1deg));
+}
+.screw.tl {
+  top: 6px;
+  left: 6px;
+}
+.screw.tr {
+  top: 6px;
+  right: 6px;
+  --slot: -52;
+}
+.screw.bl {
+  bottom: 6px;
+  left: 6px;
+  --slot: 71;
+}
+.screw.br {
+  bottom: 6px;
+  right: 6px;
+  --slot: -18;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
