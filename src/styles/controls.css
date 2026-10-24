@@ -332,10 +332,18 @@
   text-overflow: ellipsis;
 }
 
+/*
+ * top 必须显式写死：::after 是绝对定位，只给 right 时 top 取「静态位置」，
+ * 而静态位置跟 display 类型走——.select-box 用 inline-grid 时它落在盒子顶部，
+ * 箭头就贴顶不居中（inline-flex + align-items: center 才会把它摆到中间）。
+ * 三角形高 5px（border-top），margin-top 负一半即垂直居中。
+ */
 .select-box::after {
   content: '';
   position: absolute;
   right: 9px;
+  top: 50%;
+  margin-top: -2.5px;
   width: 0;
   height: 0;
   border-left: 4px solid transparent;
