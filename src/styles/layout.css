@@ -628,6 +628,27 @@
   }
 }
 
+/*
+ * 再窄一档（320px 级小屏）：换行之后这一排仍放不下——五个图标钮各 44px 加
+ * 「重置」50px，连 gap 共 300px，而 320px 屏的内容区只有 282px，会把重置顶出
+ * 面板 7px。这里把内边距和字号压一档，整排缩到约 250px。
+ */
+@media (max-width: 380px) {
+  .fx-panel-actions {
+    gap: 4px;
+  }
+
+  .fx-panel-actions .btn {
+    padding: 7px 8px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+
+  .fx-panel-actions .btn-icon {
+    padding: 7px 6px;
+  }
+}
+
 .fx-rows {
   display: flex;
   flex-direction: column;
@@ -1001,6 +1022,19 @@
 .fx-chip .mono {
   font-size: 9.5px;
   color: var(--c-ink-4);
+}
+
+/*
+ * 触摸端（不限宽度）把药丸抬高：桌面 5px 内边距算出约 26px 高，鼠标点没问题，
+ * 手指按着偏勉强。条件写成「窄屏或触摸端」而不是只写 max-width，是为了让
+ * iPad 竖屏（834px，吃不到 640px 那条）也能拿到 34px。
+ */
+@media (max-width: 640px), (hover: none) and (pointer: coarse) {
+  .fx-chip {
+    min-height: 34px;
+    padding: 7px 11px;
+    font-size: 12px;
+  }
 }
 
 /* ------------------------------- 状态栏 ------------------------------- */
@@ -1404,20 +1438,24 @@
   .stompbox-moves {
     display: flex;
     gap: 4px;
-    justify-content: center;
-    margin-top: 5px;
+    justify-content: stretch;
+    margin-top: 6px;
   }
 
+  /*
+   * 两个按钮撑满 stompbox 内宽（92 - 14  padding = 78px，扣掉 gap 各得 37px），
+   * 比原先写死 30×26 好按：面积多了四成多，也不再是挤在中间的细条。
+   */
   .stompbox-move {
-    width: 30px;
-    height: 26px;
+    flex: 1;
+    height: 30px;
     border-radius: var(--r-sm);
     background: linear-gradient(180deg, #332c20, #1a1610);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.07),
       0 0 0 1px rgba(0, 0, 0, 0.6);
     color: var(--c-ink-2);
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1;
     display: grid;
     place-items: center;
@@ -1597,8 +1635,19 @@
     gap: 6px;
   }
 
+  /*
+   * 手机上把旁通钮的触摸目标提到 44px。注意必须宽高一起给：原来只写
+   * min-height: 44px，而基础样式是 width/height: 34px，结果变成 34×44 的
+   * 竖椭圆——border-radius:50% 救不了宽高不等，圆就成了椭圆。
+   */
   .stomp {
-    min-height: 44px;
+    width: 44px;
+    height: 44px;
+  }
+
+  /* LED 内衬按比例跟上：34px 钮用 inset 11px，44px 用 14px，点径占比不变 */
+  .stomp::after {
+    inset: 14px;
   }
 
   /* ------------------------------ 表头 ------------------------------ */
