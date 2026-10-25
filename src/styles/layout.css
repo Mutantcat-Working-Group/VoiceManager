@@ -611,6 +611,23 @@
   gap: 8px;
 }
 
+/*
+ * 窄屏：这一排是旁通 + 上移 + 下移 + 复制 + 移除 + 重置，六个控件在 360px 上
+ * 会顶出面板约 38px（重置按钮整个跑出右边界，被 overflow 切掉半个）。
+ * 允许 panel-head 换行，fx-panel-actions 带着 margin-left:auto 落到第二行
+ * 右对齐——只在该放不下时才换，宽屏仍是一行。
+ */
+@media (max-width: 640px) {
+  .panel-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .fx-panel-actions {
+    gap: 6px;
+  }
+}
+
 .fx-rows {
   display: flex;
   flex-direction: column;
