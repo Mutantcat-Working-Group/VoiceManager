@@ -640,22 +640,40 @@ const INPUT_PROFILES = [
   },
 ] as const;
 
+type InputProfileId = (typeof INPUT_PROFILES)[number]['id'];
+
+/*
+ * 各模式默认的采集预设。扩音器是拿扬声器放音的，回声不消就会啸叫，所以默认
+ * 防啸叫优先；电吉他 / 贝斯 / 效果器架都戴耳机监听，要最干净的信号，默认
+ * 音质优先。切模式时按这张表重置——刷新后按上次的模式恢复，启动时不覆盖
+ * 用户存下来的选择。
+ */
+const DEFAULT_PROFILE_BY_MODE: Record<ModeId, InputProfileId> = {
+  pa: 'antifeedback',
+  guitar: 'quality',
+  bass: 'quality',
+  fx: 'quality',
+};
+
+/** 把某个采集预设落到 state 和三个开关上；silent 时不弹 toast */
+function applyInputProfile(id: InputProfileId, silent = false): void {
+  const prof = INPUT_PROFILES.find((p) => p.id === id);
+  if (!prof) return;
+  store.setState((p) => ({ ...p, input: { ...p.input, ...prof.constraints } }));
+  ecToggle.setChecked(prof.constraints.echoCancellation);
+  nsToggle.setChecked(prof.constraints.noiseSuppression);
+  agcToggle.setChecked(prof.constraints.autoGainControl);
+  renderFeedbackWarning();
+  renderProfileHint();
+  void reacquireInput();
+  if (!silent) toast(t('采集处理已切换为「{n0}」', { n0: t(prof.label) }), 'info');
+}
+
 const profileSeg = createSegmented({
   label: t('采集处理预设'),
   options: INPUT_PROFILES.map((p) => ({ value: p.id, label: t(p.label) })),
-  value: 'antifeedback',
-  onChange: (id) => {
-    const prof = INPUT_PROFILES.find((p) => p.id === id);
-    if (!prof) return;
-    store.setState((p) => ({ ...p, input: { ...p.input, ...prof.constraints } }));
-    ecToggle.setChecked(prof.constraints.echoCancellation);
-    nsToggle.setChecked(prof.constraints.noiseSuppression);
-    agcToggle.setChecked(prof.constraints.autoGainControl);
-    renderFeedbackWarning();
-    renderProfileHint();
-    void reacquireInput();
-    toast(t('采集处理已切换为「{n0}」', { n0: t(prof.label) }), 'info');
-  },
+  value: DEFAULT_PROFILE_BY_MODE[S().mode],
+  onChange: (id) => applyInputProfile(id as InputProfileId),
 });
 profileSeg.el.title = t('切换浏览器对麦克风的处理程度');
 const profileHint = el('p', 'panel-hint profile-hint');
@@ -1421,6 +1439,12 @@ function switchMode(mode: ModeId): void {
   store.setState((p) => ({ ...p, mode }));
   rebuildChain();
   renderAll();
+  /*
+   * 采集预设跟着模式走。放在 renderAll 之后，让它对 I/O 面板的渲染成为最终结果。
+   * 只在「真的切了模式」时跑——启动走的是 hydrate 后的状态，不会覆盖用户上次
+   * 存下的选择。
+   */
+  applyInputProfile(DEFAULT_PROFILE_BY_MODE[mode]);
 }
 
 /* ------------------------------ 电源 / 音源 ---------------------------- */
